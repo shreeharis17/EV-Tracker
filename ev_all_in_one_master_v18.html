@@ -1,0 +1,2851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>EV Master Command Suite</title>
+  <!-- iOS PWA Standalone App Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="EV Master" />
+  <meta name="application-name" content="EV Master" />
+  <meta name="theme-color" content="#070b14" />
+  <!-- Embedded High-Resolution Home Screen App Icon (Electric Cyan Bolt on Navy Shield) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%23090d16'/%3E%3Ccircle cx='256' cy='256' r='190' fill='%2311192b' stroke='%231e2c47' stroke-width='8'/%3E%3Cpath d='M285 64L140 284h115l-35 164 165-224H270z' fill='%2338bdf8' stroke='%230284c7' stroke-width='14' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22EV%20Master%20Command%22%2C%22short_name%22%3A%22EV%20Master%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23070b14%22%2C%22theme_color%22%3A%22%23070b14%22%7D" />
+
+  <style>
+    :root {
+      --bg: #070b14;
+      --card-bg: #11192b;
+      --card-border: #1e2c47;
+      --card-inner: #0a1120;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-accent: #0284c7;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --solar: #eab308;
+      --driver: #a855f7;
+      --maint: #f97316;
+      --wallet: #10b981;
+      --hotel: #ec4899;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.5;
+      padding: 0.75rem 0.5rem 4rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.5rem 0.85rem;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 0.75rem;
+    }
+    header h1 { font-size: 1.15rem; font-weight: 700; color: var(--primary); }
+    .badge-pill {
+      background: var(--primary-accent);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+    }
+
+    .tabs-bar {
+      display: flex;
+      gap: 0.4rem;
+      overflow-x: auto;
+      padding: 0.2rem 0.2rem 0.6rem;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--card-border);
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab-btn {
+      background: #0d1527;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.76rem;
+      padding: 0.45rem 0.7rem;
+      border-radius: 0.4rem;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .tab-btn.active {
+      background: var(--primary-accent);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.6rem;
+      padding: 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .card-title {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .leg-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.6rem;
+      padding: 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .leg-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .charge-box {
+      background: rgba(56, 189, 248, 0.06);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 0.5rem;
+      padding: 0.85rem;
+      margin-top: 0.85rem;
+    }
+    .home-session-box {
+      background: rgba(34, 197, 94, 0.06);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 0.5rem;
+      padding: 0.85rem;
+      margin-top: 0.75rem;
+    }
+    .driver-box {
+      background: rgba(168, 85, 247, 0.08);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      border-radius: 0.5rem;
+      padding: 0.85rem;
+      margin-top: 0.75rem;
+    }
+    .hotel-box {
+      background: rgba(236, 72, 153, 0.08);
+      border: 1px solid rgba(236, 72, 153, 0.35);
+      border-radius: 0.5rem;
+      padding: 0.85rem;
+      margin-top: 0.75rem;
+    }
+    .grid-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.6rem;
+    }
+    .grid-results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.6rem;
+      background: #060a12;
+      border: 1px solid #1a2538;
+      padding: 0.75rem;
+      border-radius: 0.4rem;
+      margin-top: 0.65rem;
+    }
+    .cost-progress-strip {
+      background: #080d18;
+      border: 1px solid #1e293b;
+      border-radius: 0.4rem;
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.65rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.6rem;
+      font-size: 0.8rem;
+    }
+    .cost-stat-box { display: flex; flex-direction: column; }
+    .cost-stat-lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    .cost-stat-val { font-size: 1.15rem; font-weight: 800; color: var(--success); }
+    .cost-stat-sub { font-size: 0.7rem; color: var(--text-muted); }
+    
+    .form-group { margin-bottom: 0.4rem; }
+    label { display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+    input, select {
+      width: 100%;
+      background: #080d18;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 0.5rem 0.65rem;
+      border-radius: 0.375rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    input:focus, select:focus { outline: 2px solid var(--primary); }
+    .stat-val { font-size: 1.25rem; font-weight: 700; color: var(--text); }
+    .stat-sub { font-size: 0.72rem; color: var(--text-muted); }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.45rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 0.25rem;
+      margin-top: 0.25rem;
+    }
+    .badge-safe { background: rgba(34, 197, 94, 0.18); color: var(--success); }
+    .badge-warn { background: rgba(245, 158, 11, 0.18); color: var(--warning); }
+    .badge-danger { background: rgba(239, 68, 68, 0.18); color: var(--danger); }
+    .badge-maint { background: rgba(249, 115, 22, 0.18); color: var(--maint); }
+    .badge-wallet { background: rgba(16, 185, 129, 0.18); color: var(--wallet); }
+    .badge-hotel { background: rgba(236, 72, 153, 0.18); color: var(--hotel); }
+    
+    .btn {
+      background: var(--primary);
+      color: #090d16;
+      border: none;
+      font-weight: 700;
+      padding: 0.65rem 1.2rem;
+      border-radius: 0.4rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      font-size: 0.75rem;
+      padding: 0.35rem 0.7rem;
+      width: auto;
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 0.35rem;
+      cursor: pointer;
+    }
+    .btn-add {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px dashed var(--primary);
+      color: var(--primary);
+      font-weight: 700;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .btn-add:hover { background: rgba(56, 189, 248, 0.25); }
+    .btn-maint {
+      background: linear-gradient(135deg, #ea580c, #f97316);
+      color: #fff;
+      font-weight: 700;
+      padding: 0.65rem 1.2rem;
+      border-radius: 0.4rem;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      width: 100%;
+    }
+    .btn-hud {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #090d16;
+      font-weight: 800;
+      border: none;
+      padding: 0.45rem 0.85rem;
+      border-radius: 0.4rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .cost-highlight { color: #38bdf8; font-weight: 700; }
+    
+    .preset-group {
+      display: flex;
+      gap: 0.35rem;
+      margin-top: 0.3rem;
+      flex-wrap: wrap;
+    }
+    .preset-chip {
+      background: #080d18;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.25rem;
+      cursor: pointer;
+    }
+    .preset-chip:hover { border-color: var(--primary); color: var(--text); }
+    .preset-chip.active { background: rgba(56, 189, 248, 0.2); border-color: var(--primary); color: var(--primary); }
+
+    .hero-range-banner {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(56, 189, 248, 0.12) 100%);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      border-radius: 0.45rem;
+      padding: 0.75rem 0.85rem;
+      margin-top: 0.65rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 0.75rem;
+    }
+    .hero-val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--success);
+      line-height: 1.2;
+    }
+    .hero-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .var-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.3rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-top: 0.3rem;
+    }
+    .var-ahead { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+    .var-behind { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+    #hud-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 13, 0.95);
+      z-index: 9999;
+      padding: 1rem;
+      overflow-y: auto;
+      align-items: center;
+      justify-content: center;
+    }
+    .hud-box {
+      max-width: 650px;
+      width: 100%;
+      background: #0d1424;
+      border: 2px solid var(--primary);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+    }
+    .slab-info-tag {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.45rem 0.65rem;
+      border-radius: 0.35rem;
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+      color: var(--text);
+    }
+    .cashback-badge {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.25rem;
+      font-weight: 700;
+      font-size: 0.72rem;
+    }
+    .driver-badge {
+      color: #c084fc;
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.25rem;
+      font-weight: 700;
+      font-size: 0.72rem;
+    }
+    .plug-metric-chip {
+      background: #050912;
+      border: 1px solid #1e293b;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.3rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: inline-block;
+    }
+    .planb-chip {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.3rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { padding: 0.5rem 0.4rem; text-align: left; border-bottom: 1px solid var(--card-border); }
+    th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>⚡ EV Master Command Suite (Standalone App)</h1>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">All-in-One Highway, Hotel AC, Plan-B Redundancy, CPO Wallets, TPMS, 12V, Solar & TCO Hub</div>
+      </div>
+      <div style="display: flex; gap: 0.4rem; align-items: center;">
+        <button class="btn-hud" onclick="toggleHUD(true)">📸 HUD</button>
+        <div class="badge-pill" id="header-pack-pill">38.0 kWh (100% SOH)</div>
+      </div>
+    </header>
+
+    <!-- TOP TAB SWITCHER -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchMainTab('tab-highway')">🛣️ Highway & Route</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-hotel')">🏨 Destination & Hotel AC</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-wallets')">💳 CPO Wallets & RFID</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-maint')">🔧 Wheel Care & 12V</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-battery')">🔋 SOH & BMS Firmware</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-solar')">☀️ Home AC, Solar & Grid</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-aero')">📈 Speed, HVAC & Aero</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-tco')">📊 TCO, Vault & Emergency</button>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 1: HIGHWAY TRIP PLANNER & ROUTE COMMAND              -->
+    <!-- ======================================================== -->
+    <div id="tab-highway" class="tab-pane active">
+      
+      <!-- GLOBAL VEHICLE & HOME AC SETUP -->
+      <div class="card">
+        <div class="card-title">
+          <span>Vehicle Baseline & Home AC Charging Setup</span>
+          <button class="btn btn-secondary" onclick="resetDefaults()">Reset Scenario Defaults</button>
+        </div>
+
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Nominal Pack (kWh)</label>
+            <input type="number" id="cfg-pack" value="38.0" step="0.5" oninput="calculateTrip()" />
+          </div>
+          <div class="form-group">
+            <label>Battery Health (SOH %)</label>
+            <input type="number" id="cfg-soh" value="100" min="70" max="100" step="0.5" oninput="syncSohFromConfig()" />
+          </div>
+          <div class="form-group">
+            <label>Departure Plug-out SoC (%)</label>
+            <input type="number" id="cfg-depart-soc" value="100" min="20" max="100" oninput="calculateTrip()" />
+          </div>
+          <div class="form-group">
+            <label>Trip Start Odometer (km)</label>
+            <input type="number" id="cfg-start-odo" value="5400" step="10" oninput="updateInitialOdo()" />
+          </div>
+          <div class="form-group">
+            <label>Home AC Wall Loss Factor</label>
+            <select id="cfg-ac-eff" onchange="calculateTrip()">
+              <option value="0.88" selected>88% (Standard 3.3 kW AC)</option>
+              <option value="0.90">90% (Cool Weather)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- PRE-TRIP OVERNIGHT HOME CHARGING SESSION AUDITOR -->
+        <div class="home-session-box">
+          <div style="font-weight:700; font-size:0.85rem; color:var(--success); margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>🔌 Pre-Trip Home 3.3 kW AC Session (Overnight Soak & Balancing)</span>
+            <span class="plug-metric-chip" id="home-pre-summary">Plug: 27% → 100% (+73%)</span>
+          </div>
+          <div class="grid-inputs">
+            <div class="form-group">
+              <label>Plug-in Time</label>
+              <input type="time" id="home-pre-time-in" value="21:15" onchange="calculateTrip()" />
+            </div>
+            <div class="form-group">
+              <label>Plug-out Time</label>
+              <input type="time" id="home-pre-time-out" value="07:15" onchange="calculateTrip()" />
+            </div>
+            <div class="form-group">
+              <label>Plug-in SoC (%)</label>
+              <input type="number" id="home-pre-soc-in" value="27" min="1" max="99" oninput="calculateTrip()" />
+            </div>
+            <div class="form-group">
+              <label>Plug-out SoC (%)</label>
+              <input type="number" id="home-pre-soc-out" value="100" min="50" max="100" oninput="calculateTrip()" />
+            </div>
+          </div>
+
+          <div style="margin-top:0.5rem; background:#050912; padding:0.55rem 0.75rem; border-radius:0.35rem; border:1px solid #1a2538; font-size:0.78rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+            <div>
+              Plugged Duration: <strong id="home-pre-total-time" style="color:var(--text);">10h 00m</strong> | 
+              Active 3.3 kW Draw: <strong id="home-pre-active-time" style="color:var(--primary);">9h 33m</strong> | 
+              Top-Balancing Soak: <strong id="home-pre-soak-time" style="color:var(--success);">27m</strong>
+            </div>
+            <div>
+              Energy Added: <strong id="home-pre-pack-kwh">27.74 kWh</strong> (<span id="home-pre-meter-units">31.52 grid units</span>) | 
+              Cost: <strong id="home-pre-cost" style="color:var(--success);">₹264.79</strong> (<span id="home-pre-rate">₹9.55/kWh deliv</span>)
+            </div>
+          </div>
+        </div>
+
+        <!-- DRIVER / CHAUFFEUR EXPENSE AUDITOR -->
+        <div class="driver-box">
+          <div style="font-weight:700; font-size:0.85rem; color:var(--driver); margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>👨‍✈️ Driver & Chauffeur Expense Calculator</span>
+            <span class="driver-badge" id="driver-cost-badge">₹0.00 / km added</span>
+          </div>
+          <div class="grid-inputs">
+            <div class="form-group">
+              <label>Driver Rate Type</label>
+              <select id="drv-mode" onchange="toggleDriverMode()">
+                <option value="day" selected>Per Day (Base + Food/Night Batta)</option>
+                <option value="hour">Per Hour (Hourly Rate × Trip Hours)</option>
+                <option value="fixed">Fixed Lump Sum Contract</option>
+                <option value="none">No Driver (Self Driven)</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="drv-box-day-rate">
+              <label>Daily Rate (₹/day)</label>
+              <input type="number" id="drv-day-rate" value="1000" step="50" oninput="calculateTrip()" />
+            </div>
+            <div class="form-group" id="drv-box-days">
+              <label>Number of Days</label>
+              <input type="number" id="drv-days-count" value="1" min="1" max="15" oninput="calculateTrip()" />
+            </div>
+            <div class="form-group" id="drv-box-batta">
+              <label>Food / Night Batta (₹)</label>
+              <input type="number" id="drv-batta" value="250" step="50" oninput="calculateTrip()" />
+            </div>
+
+            <div class="form-group" id="drv-box-hour-rate" style="display:none;">
+              <label>Hourly Rate (₹/hr)</label>
+              <input type="number" id="drv-hour-rate" value="120" step="10" oninput="calculateTrip()" />
+            </div>
+            <div class="form-group" id="drv-box-trip-hours" style="display:none;">
+              <label>Total Trip Hours</label>
+              <input type="number" id="drv-total-hours" value="10.5" step="0.5" oninput="calculateTrip()" />
+            </div>
+
+            <div class="form-group" id="drv-box-fixed-amt" style="display:none;">
+              <label>Fixed Driver Payment (₹)</label>
+              <input type="number" id="drv-fixed-amt" value="1250" step="50" oninput="calculateTrip()" />
+            </div>
+          </div>
+
+          <div style="margin-top:0.5rem; background:#050912; padding:0.55rem 0.75rem; border-radius:0.35rem; border:1px solid #1a2538; font-size:0.78rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              Total Driver Expense: <strong id="drv-total-expense" style="color:var(--driver); font-size:0.95rem;">₹1,250.00</strong>
+              <span id="drv-calc-breakdown" style="color:var(--text-muted); margin-left:0.4rem;">(₹1,000 base + ₹250 batta)</span>
+            </div>
+            <div>
+              Driver Cost / km: <strong id="drv-per-km-share" style="color:var(--driver);">₹2.50 / km</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bi-Monthly Tariff Selector -->
+        <div style="margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed var(--card-border);">
+          <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 0.5rem;">
+            🏠 Home AC Electricity Billing Mode (Bi-Monthly Telescopic Slabs)
+          </div>
+          <div class="grid-inputs">
+            <div class="form-group">
+              <label>Tariff Calculation Method</label>
+              <select id="cfg-tariff-mode" onchange="toggleTariffMode()">
+                <option value="marginal" selected>1. Marginal Slab Preset (TANGEDCO Slabs)</option>
+                <option value="solar">2. Rooftop Solar Self-Consumption (Net Metering)</option>
+                <option value="telescopic">3. Dynamic Bi-Monthly Meter Calculator</option>
+                <option value="custom">4. Fixed Flat Tariff (₹/unit)</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="box-marginal-preset">
+              <label>Household Bi-Monthly Slab</label>
+              <select id="cfg-marginal-slab" onchange="calculateTrip()">
+                <option value="6.30">401 – 500 units slab (₹6.30/unit)</option>
+                <option value="8.40" selected>501 – 600 units slab (₹8.40/unit)</option>
+                <option value="9.45">601 – 800 units slab (₹9.45/unit)</option>
+                <option value="10.50">801 – 1,000 units slab (₹10.50/unit)</option>
+                <option value="11.55">Above 1,000 units slab (₹11.55/unit)</option>
+                <option value="4.70">201 – 400 units slab (₹4.70/unit)</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="box-solar-rate" style="display:none;">
+              <label>Solar Levelized Cost (₹/unit)</label>
+              <input type="number" id="cfg-solar-lcoe" value="0.00" step="0.5" placeholder="0 for free solar, or amortized ~2.0" oninput="calculateTrip()" />
+            </div>
+
+            <div class="form-group" id="box-telescopic" style="display:none;">
+              <label>Non-EV Household Baseline (Units)</label>
+              <input type="number" id="cfg-baseline-units" value="450" step="10" placeholder="e.g. 450" oninput="calculateTrip()" />
+            </div>
+
+            <div class="form-group" id="box-custom-rate" style="display:none;">
+              <label>Custom Electricity Rate (₹/unit)</label>
+              <input type="number" id="cfg-custom-rate" value="8.50" step="0.1" oninput="calculateTrip()" />
+            </div>
+          </div>
+
+          <div class="slab-info-tag" id="slab-explanation-tag"></div>
+        </div>
+      </div>
+
+      <!-- DYNAMIC LEGS CONTAINER -->
+      <div id="legs-wrapper"></div>
+
+      <!-- BUTTON TO ADD MORE STOPS -->
+      <button class="btn-add" onclick="addChargingStop()">➕ Add Another Highway Leg / Fast Charger Stop</button>
+
+      <!-- GRAND HIGHWAY RECONCILIATION -->
+      <div class="card" style="border-color: var(--primary);">
+        <div class="card-title" style="color:var(--primary); font-weight:700;">
+          🏁 Grand Highway Reconciliation (Entire Route with Energy, Driver & Tolls)
+        </div>
+
+        <div class="hero-range-banner" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(34, 197, 94, 0.15) 100%); border-color: var(--primary); margin-top:0; margin-bottom:0.75rem;">
+          <div>
+            <div class="hero-label">All-Inclusive Total Cost / km</div>
+            <div id="tot-all-inclusive-rate" class="hero-val" style="color:var(--primary); font-size:1.6rem;">₹0.00 / km</div>
+            <div class="stat-sub">(Energy + Driver + Fastag Tolls + GST)</div>
+          </div>
+          <div>
+            <div class="hero-label">Energy-Only Net Cost / km</div>
+            <div id="tot-rate" class="hero-val" style="color:var(--success);">₹0.00 / km</div>
+            <div class="stat-sub">(Pure EV electricity cost)</div>
+          </div>
+          <div>
+            <div class="hero-label">Total Fastag Tolls Paid</div>
+            <div id="tot-tolls-banner" class="hero-val" style="color:var(--solar);">₹0.00</div>
+            <div class="stat-sub" id="tot-cashback-sub">SBI Cashback: ₹0.00</div>
+          </div>
+        </div>
+
+        <div class="grid-results" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+          <div>
+            <div class="stat-sub">Total Loop Distance</div>
+            <div id="tot-dist" class="stat-val">0 km</div>
+          </div>
+          <div>
+            <div class="stat-sub">Overall Trip Wh/km</div>
+            <div id="tot-whkm" class="stat-val" style="color:var(--primary);">--</div>
+            <div id="tot-kmkwh" class="stat-sub">-- km/kWh</div>
+          </div>
+          <div>
+            <div class="stat-sub">Total Discharged Energy</div>
+            <div id="tot-kwh" class="stat-val">-- kWh</div>
+          </div>
+          <div>
+            <div class="stat-sub">Grand Total Spend</div>
+            <div id="tot-grand-cost" class="stat-val" style="color:var(--success);">₹--</div>
+            <div class="stat-sub" id="tot-cost-split-sub" style="font-size:0.7rem;">Energy: ₹-- | Drv: ₹-- | Toll: ₹--</div>
+          </div>
+        </div>
+
+        <!-- Itemized Charging Breakdown -->
+        <div style="margin-top: 0.85rem; font-size: 0.8rem; background: #060a12; padding: 0.75rem; border-radius: 0.4rem; border: 1px solid #1a2538;">
+          <div style="font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase;">
+            Itemized Session Billing Breakdown (Tolls, Driver, Charging, GST & Cashback)
+          </div>
+          <div id="billing-breakdown"></div>
+          <div style="display:flex; justify-content:space-between; padding:0.35rem 0 0; color:var(--primary); font-weight:700; border-top:1px solid #1a2538; margin-top:0.4rem;">
+            <span>Net Savings vs Petrol Car with Driver & Tolls (14 km/L @ ₹103/L + Driver + Tolls):</span>
+            <span id="net-savings">₹0.00</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 0.85rem; display: flex; gap: 0.5rem;">
+          <button class="btn" onclick="saveToHistory()">Save Trip to History</button>
+          <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 2: DESTINATION & HOTEL OVERNIGHT AC CHARGING HUB     -->
+    <!-- ======================================================== -->
+    <div id="tab-hotel" class="tab-pane">
+      <div class="card">
+        <div class="card-title">
+          <span>🏨 Hotel & Destination Slow AC Charging Hub</span>
+          <span class="badge badge-hotel">Overnight 15A/16A Recovery</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          When arriving at an outstation hotel or resort, overnight slow charging from a 15A/16A industrial 3-pin socket or 7.2 kW Type-2 wallbox eliminates the need for commercial DC fast charging on the return leg.
+        </p>
+
+        <div class="hotel-box">
+          <div style="font-weight:700; font-size:0.85rem; color:var(--hotel); margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>🔌 Destination AC Session Parameters</span>
+            <span class="plug-metric-chip" id="hotel-summary-chip">15A Socket @ 2.4 kW</span>
+          </div>
+          <div class="grid-inputs">
+            <div class="form-group">
+              <label>Charging Infrastructure Type</label>
+              <select id="hotel-infra-type" onchange="runHotelAudit()">
+                <option value="15A" selected>15A/16A 3-Pin Socket (Portable ~2.4 kW)</option>
+                <option value="16A_Max">Industrial 16A CEE Socket (Portable ~3.3 kW)</option>
+                <option value="Type2">Destination AC Wallbox (Type-2 ~7.2 kW)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Hotel Billing Model</label>
+              <select id="hotel-bill-mode" onchange="runHotelAudit()">
+                <option value="free" selected>Complimentary (Free with Room Stay)</option>
+                <option value="flat">Flat Overnight Parking Fee (₹)</option>
+                <option value="metered">Sub-Metered Rate (₹ / unit)</option>
+              </select>
+            </div>
+            <div class="form-group" id="hotel-box-flat-fee" style="display:none;">
+              <label>Flat Fee Charged by Hotel (₹)</label>
+              <input type="number" id="hotel-flat-fee" value="400" step="50" oninput="runHotelAudit()" />
+            </div>
+            <div class="form-group" id="hotel-box-metered-rate" style="display:none;">
+              <label>Hotel Sub-Meter Tariff (₹/unit)</label>
+              <input type="number" id="hotel-metered-rate" value="12.00" step="0.5" oninput="runHotelAudit()" />
+            </div>
+          </div>
+
+          <div class="grid-inputs" style="margin-top:0.6rem;">
+            <div class="form-group">
+              <label>Hotel Arrival Plug-In SoC (%)</label>
+              <input type="number" id="hotel-soc-in" value="22" min="1" max="95" oninput="runHotelAudit()" />
+            </div>
+            <div class="form-group">
+              <label>Morning Departure Plug-Out (%)</label>
+              <input type="number" id="hotel-soc-out" value="100" min="50" max="100" oninput="runHotelAudit()" />
+            </div>
+            <div class="form-group">
+              <label>Available Overnight Hours</label>
+              <input type="number" id="hotel-hours-avail" value="11" min="1" max="24" oninput="runHotelAudit()" />
+            </div>
+          </div>
+
+          <div class="grid-results" style="margin-top:0.75rem;">
+            <div>
+              <div class="stat-sub">Energy Delivered to Pack</div>
+              <div id="hotel-res-pack-kwh" class="stat-val">29.64 kWh</div>
+              <div class="stat-sub" id="hotel-res-meter-units">33.68 units drawn</div>
+            </div>
+            <div>
+              <div class="stat-sub">Charging Time Required</div>
+              <div id="hotel-res-time-needed" class="stat-val" style="color:var(--primary);">-- hrs</div>
+              <div class="stat-sub" id="hotel-res-time-status">Within overnight window</div>
+            </div>
+            <div>
+              <div class="stat-sub">Total Destination Cost</div>
+              <div id="hotel-res-cost" class="stat-val" style="color:var(--success);">₹0.00</div>
+              <div class="stat-sub" id="hotel-res-deliv-rate">₹0.00 / kWh delivered</div>
+            </div>
+            <div>
+              <div class="stat-sub">Return Leg Economy</div>
+              <div id="hotel-res-cost-km" class="stat-val" style="color:var(--success);">₹0.00 / km</div>
+              <div class="stat-sub">vs ₹2.25/km DC fast charging</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 3: CPO WALLETS & FASTAG BALANCE AUDITOR              -->
+    <!-- ======================================================== -->
+    <div id="tab-wallets" class="tab-pane">
+      <div class="card">
+        <div class="card-title">
+          <span>💳 Closed-Loop CPO Wallets, RFID Cards & Fastag Liquidity</span>
+          <span class="badge badge-wallet" id="total-wallet-liquidity">Total: ₹0</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Pre-funding charging wallets prevents authorization failures at remote highway food-courts with poor cellular signal. Keep at least ₹500 in active wallets and verify physical RFID cards.
+        </p>
+
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Zeon Charging Wallet (₹)</label>
+            <input type="number" id="wal-zeon" value="850" step="50" oninput="auditWallets()" />
+          </div>
+          <div class="form-group">
+            <label>Tata Power EZ Charge (₹)</label>
+            <input type="number" id="wal-tata" value="620" step="50" oninput="auditWallets()" />
+          </div>
+          <div class="form-group">
+            <label>Jio-bp Pulse Wallet (₹)</label>
+            <input type="number" id="wal-jio" value="450" step="50" oninput="auditWallets()" />
+          </div>
+          <div class="form-group">
+            <label>Statiq / ChargeZone (₹)</label>
+            <input type="number" id="wal-statiq" value="500" step="50" oninput="auditWallets()" />
+          </div>
+          <div class="form-group">
+            <label>Relux Electric (₹)</label>
+            <input type="number" id="wal-relux" value="300" step="50" oninput="auditWallets()" />
+          </div>
+          <div class="form-group">
+            <label>NHAI Fastag Wallet (₹)</label>
+            <input type="number" id="wal-fastag" value="1200" step="100" oninput="auditWallets()" />
+          </div>
+        </div>
+
+        <div style="margin-top: 1rem; padding: 0.75rem; background: #060a12; border: 1px solid #1a2538; border-radius: 0.4rem;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase;">
+            📡 Physical Offline RFID Cards in Car Glovebox
+          </div>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8rem;">
+            <label style="display:flex; align-items:center; gap:0.35rem; color:var(--text);">
+              <input type="checkbox" id="rfid-zeon" checked onchange="auditWallets()" style="width:auto;" /> Zeon RFID Card
+            </label>
+            <label style="display:flex; align-items:center; gap:0.35rem; color:var(--text);">
+              <input type="checkbox" id="rfid-tata" checked onchange="auditWallets()" style="width:auto;" /> Tata Power RFID Card
+            </label>
+            <label style="display:flex; align-items:center; gap:0.35rem; color:var(--text);">
+              <input type="checkbox" id="rfid-jio" onchange="auditWallets()" style="width:auto;" /> Jio-bp RFID Card
+            </label>
+            <label style="display:flex; align-items:center; gap:0.35rem; color:var(--text);">
+              <input type="checkbox" id="rfid-statiq" onchange="auditWallets()" style="width:auto;" /> Statiq RFID Card
+            </label>
+          </div>
+        </div>
+
+        <div id="wallet-alert-box" style="margin-top: 0.75rem; font-size: 0.8rem;"></div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 4: SERVICE, MAINTENANCE, WHEEL CARE & 12V BATTERY    -->
+    <!-- ======================================================== -->
+    <div id="tab-maint" class="tab-pane">
+      <div class="card">
+        <div class="card-title">
+          <span>🔧 Wheel Care, 12V Auxiliary Battery & Service Monitor</span>
+          <span id="maint-odo-badge" class="badge badge-safe">Current Odo: 5,400 km</span>
+        </div>
+
+        <div class="grid-results" style="margin-top:0;">
+          <div>
+            <div class="stat-sub">Wheel Alignment & Balancing</div>
+            <div id="maint-wa-dist-val" class="stat-val" style="font-size:1.15rem; color:var(--success);">-- km</div>
+            <div class="stat-sub" id="maint-wa-status">since last alignment</div>
+          </div>
+          <div>
+            <div class="stat-sub">12V Auxiliary Battery Health</div>
+            <div id="maint-12v-val" class="stat-val" style="font-size:1.15rem; color:var(--success);">12.7 V</div>
+            <div class="stat-sub" id="maint-12v-status">Pristine State</div>
+          </div>
+          <div>
+            <div class="stat-sub">Tire Tread Depth</div>
+            <div id="maint-tread-val" class="stat-val" style="font-size:1.15rem; color:var(--primary);">7.2 mm</div>
+            <div class="stat-sub">Healthy (>4.0 mm)</div>
+          </div>
+          <div>
+            <div class="stat-sub">Lifetime Maintenance Spend</div>
+            <div id="maint-total-spend-val" class="stat-val" style="font-size:1.15rem; color:var(--maint);">₹0</div>
+            <div class="stat-sub" id="maint-per-km-val">₹0.00 / km maintenance</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TPMS COLD TIRE PRESSURE & 12V AUXILIARY LOG FORM -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
+        <div class="card-title" style="color:var(--primary);">
+          <span>🚗 TPMS Cold Tire Pressure (PSI) & 12V Voltage Check</span>
+        </div>
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Front-Left PSI</label>
+            <input type="number" id="tpms-fl" value="34" step="0.5" oninput="auditTpms()" />
+          </div>
+          <div class="form-group">
+            <label>Front-Right PSI</label>
+            <input type="number" id="tpms-fr" value="34" step="0.5" oninput="auditTpms()" />
+          </div>
+          <div class="form-group">
+            <label>Rear-Left PSI</label>
+            <input type="number" id="tpms-rl" value="34" step="0.5" oninput="auditTpms()" />
+          </div>
+          <div class="form-group">
+            <label>Rear-Right PSI</label>
+            <input type="number" id="tpms-rr" value="34" step="0.5" oninput="auditTpms()" />
+          </div>
+          <div class="form-group">
+            <label>Avg Tread Depth (mm)</label>
+            <input type="number" id="tpms-tread" value="7.2" step="0.1" oninput="auditTpms()" />
+          </div>
+          <div class="form-group">
+            <label>12V Rest Voltage (V)</label>
+            <input type="number" id="aux-12v-volt" value="12.7" step="0.1" oninput="audit12vBattery()" />
+          </div>
+        </div>
+        <div id="tpms-status-strip" style="margin-top:0.5rem; font-size:0.78rem;"></div>
+      </div>
+
+      <!-- ADD SERVICE / MAINTENANCE LOG FORM -->
+      <div class="card" style="border-color: rgba(249, 115, 22, 0.4);">
+        <div class="card-title" style="color:var(--maint);">
+          <span>+ Log Maintenance, Wheel Alignment or Service Entry</span>
+        </div>
+
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Service Date</label>
+            <input type="date" id="maint-input-date" />
+          </div>
+          <div class="form-group">
+            <label>Odometer Reading (km)</label>
+            <input type="number" id="maint-input-odo" value="5400" step="50" placeholder="e.g. 5400" />
+          </div>
+          <div class="form-group">
+            <label>Maintenance / Service Type</label>
+            <select id="maint-input-type">
+              <option value="Wheel Alignment & Balancing" selected>Wheel Alignment & Wheel Balancing</option>
+              <option value="Tire Rotation">Tire Rotation (Front/Rear Cross)</option>
+              <option value="Periodic Scheduled Service">Periodic Scheduled Service / Inspection</option>
+              <option value="12V Battery Replacement">12V Auxiliary Battery Replacement</option>
+              <option value="Cabin AC Air Filter">Cabin AC Air Filter (PM 2.5) Replacement</option>
+              <option value="Brake Service & Caliper Cleaning">Brake Service & Caliper Pin Cleaning</option>
+              <option value="Battery Coolant / Gear Fluid">Battery Coolant / Reduction Gear Fluid</option>
+              <option value="Wiper Blades / Washer Fluid">Wiper Blades / Windshield Washer Fluid</option>
+              <option value="Tire Puncture / Nitrogen Top-up">Tire Puncture / Nitrogen Top-up</option>
+              <option value="General Inspection / Repair">General Inspection / Repair</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Invoice Amount (₹)</label>
+            <input type="number" id="maint-input-cost" value="1200" step="50" placeholder="e.g. 1200" />
+          </div>
+        </div>
+
+        <div class="grid-inputs" style="margin-top:0.5rem;">
+          <div class="form-group">
+            <label>Workshop / Center Name</label>
+            <input type="text" id="maint-input-center" placeholder="e.g. Wheel Force Tyre Care" value="Wheel Force Tyre Care" />
+          </div>
+          <div class="form-group" style="grid-column: span 2;">
+            <label>Notes / Technical Details</label>
+            <input type="text" id="maint-input-notes" placeholder="e.g. 3D Laser Alignment, 20g weights added front, 34 PSI set" value="3D Laser Alignment checked, 20g weights added front, 34 PSI N2 set" />
+          </div>
+        </div>
+
+        <div style="margin-top:0.75rem;">
+          <button class="btn-maint" onclick="addMaintenanceRecord()">💾 Save Maintenance Record to Ledger</button>
+        </div>
+      </div>
+
+      <!-- HISTORICAL SERVICE & WHEEL CARE LEDGER TABLE -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <span style="font-size:0.85rem; font-weight:700; color:var(--primary);">📋 Complete Maintenance & Service History</span>
+          <button class="btn btn-secondary" onclick="exportMaintenanceCSV()">Export Service CSV</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Odometer</th>
+                <th>Service Type</th>
+                <th>Workshop / Center</th>
+                <th>Cost (₹)</th>
+                <th>Notes / Specifications</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="maint-table-body">
+              <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No service records logged yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 5: BATTERY HEALTH (SOH) & BMS FIRMWARE LEDGER        -->
+    <!-- ======================================================== -->
+    <div id="tab-battery" class="tab-pane">
+      <div class="card">
+        <div class="card-title">🔋 LFP Battery State of Health (SOH) & Pack Calibration</div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          LFP chemistry features an ultra-flat voltage curve between 20% and 80%. Top-balancing on AC slow charging is essential for the BMS to eliminate Coulomb drift and accurately calculate usable capacity.
+        </p>
+
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Current Battery SOH (%)</label>
+            <input type="number" id="diag-soh-input" value="100.0" min="60" max="100" step="0.1" oninput="updateSohFromTab()" />
+          </div>
+          <div class="form-group">
+            <label>Cell Voltage Delta at 100% (mV)</label>
+            <input type="number" id="diag-cell-delta" value="12" step="1" oninput="auditCellDelta()" />
+          </div>
+          <div class="form-group">
+            <label>Days Since Last Full 100% AC Charge</label>
+            <input type="number" id="diag-days-ac" value="3" step="1" oninput="auditCellDelta()" />
+          </div>
+        </div>
+
+        <div id="diag-status-box" style="margin-top: 0.85rem; padding: 0.85rem; border-radius: 0.4rem; background: #060a12; border: 1px solid #1a2538;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Pack Health Status</span>
+            <span id="diag-status-badge" class="badge badge-safe">Pristine Health</span>
+          </div>
+          <div id="diag-status-desc" style="font-size: 0.82rem; color: var(--text);"></div>
+        </div>
+
+        <!-- SOH Logbook -->
+        <div style="margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary);">Battery Health (SOH) Logbook</span>
+            <button class="btn btn-secondary" onclick="logCurrentSoh()">+ Record Current SOH</button>
+          </div>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Odometer</th>
+                  <th>SOH %</th>
+                  <th>Effective Pack</th>
+                  <th>Cell Delta</th>
+                </tr>
+              </thead>
+              <tbody id="soh-log-body">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No SOH records logged yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Vehicle Firmware & BMS Software Version Ledger -->
+        <div style="margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px dashed var(--card-border);">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">
+            💻 BMS & Vehicle Control Unit (VCU) Firmware Ledger
+          </div>
+          <div class="grid-inputs">
+            <div class="form-group">
+              <label>BMS Firmware Version</label>
+              <input type="text" id="fw-bms" value="BMS-v2.1.04-LFP" />
+            </div>
+            <div class="form-group">
+              <label>VCU Software Version</label>
+              <input type="text" id="fw-vcu" value="VCU_REV_08_INDIA" />
+            </div>
+            <div class="form-group">
+              <label>Infotainment / MCU Version</label>
+              <input type="text" id="fw-mcu" value="OS_REL_11_2026" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 6: HOME AC, SOLAR & SANCTIONED GRID LOAD AUDITOR     -->
+    <!-- ======================================================== -->
+    <div id="tab-solar" class="tab-pane">
+      <div class="card">
+        <div class="card-title">☀️ Rooftop Solar Net Metering & AC Charging Simulator</div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Model the financial return of charging your EV from a rooftop solar system (e.g. under PM Surya Ghar) versus pulling from the domestic grid.
+        </p>
+
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Installed Solar Capacity (kW)</label>
+            <input type="number" id="sol-kw" value="3.3" step="0.5" oninput="runSolarSim()" />
+          </div>
+          <div class="form-group">
+            <label>Avg Daily Solar Generation (Units)</label>
+            <input type="number" id="sol-daily-units" value="13.5" step="0.5" oninput="runSolarSim()" />
+          </div>
+          <div class="form-group">
+            <label>Monthly EV Driving Distance (km)</label>
+            <input type="number" id="sol-monthly-km" value="1200" step="50" oninput="runSolarSim()" />
+          </div>
+          <div class="form-group">
+            <label>Vehicle Highway/City Wh/km</label>
+            <input type="number" id="sol-whkm" value="125" step="1" oninput="runSolarSim()" />
+          </div>
+        </div>
+
+        <div class="grid-results" style="margin-top: 1rem;">
+          <div>
+            <div class="stat-sub">Monthly EV Energy Draw</div>
+            <div id="sol-res-kwh" class="stat-val">-- kWh</div>
+            <div class="stat-sub" id="sol-res-meter-units">(with 12% AC loss)</div>
+          </div>
+          <div>
+            <div class="stat-sub">Solar Generation Coverage</div>
+            <div id="sol-res-coverage" class="stat-val" style="color:var(--solar);">--%</div>
+            <div class="stat-sub">of total driving energy</div>
+          </div>
+          <div>
+            <div class="stat-sub">Monthly Grid Bill Saved</div>
+            <div id="sol-res-savings" class="stat-val" style="color:var(--success);">₹--</div>
+            <div class="stat-sub">vs top domestic slab</div>
+          </div>
+          <div>
+            <div class="stat-sub">Annual Direct Fuel Savings</div>
+            <div id="sol-res-annual" class="stat-val" style="color:var(--success);">₹-- / yr</div>
+            <div class="stat-sub">vs 14 km/L petrol car</div>
+          </div>
+        </div>
+
+        <!-- HOME SANCTIONED LOAD & CONCURRENT PEAK DEMAND AUDIT -->
+        <div style="margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px dashed var(--card-border);">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--solar); margin-bottom: 0.5rem;">
+            ⚡ Domestic Sanctioned Load & Concurrent Peak Demand Audit
+          </div>
+          <div class="grid-inputs">
+            <div class="form-group">
+              <label>TNEB Sanctioned Load (kW)</label>
+              <input type="number" id="grid-sanctioned-kw" value="5.0" step="0.5" oninput="auditGridLoad()" />
+            </div>
+            <div class="form-group">
+              <label>EV AC Charger Draw (kW)</label>
+              <input type="number" id="grid-ev-charger-kw" value="3.3" disabled style="color:var(--primary);" />
+            </div>
+            <div class="form-group">
+              <label>Base Household Night Load (kW)</label>
+              <input type="number" id="grid-base-load-kw" value="0.8" step="0.2" oninput="auditGridLoad()" />
+            </div>
+          </div>
+          <div id="grid-load-status-box" style="margin-top:0.6rem; font-size:0.78rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 7: SPEED, HVAC & ENVIRONMENTAL DRAG MATRIX           -->
+    <!-- ======================================================== -->
+    <div id="tab-aero" class="tab-pane">
+      <div class="card">
+        <div class="card-title">📈 Aerodynamic Highway Speed vs. Range Lookup Curve</div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Aerodynamic drag scales quadratically ($v^2$) and power consumption cubically ($v^3$). Here is your vehicle's calibrated highway consumption matrix for the 38 kWh LFP battery:
+        </p>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Cruising Speed</th>
+                <th>Consumption</th>
+                <th>Range / 1%</th>
+                <th>Real 100% Range</th>
+                <th>Safe Highway Range</th>
+                <th>Grid ₹ / km</th>
+              </tr>
+            </thead>
+            <tbody id="aero-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 8: LIFETIME TCO, WARRANTY & EMERGENCY PROTOCOLS      -->
+    <!-- ======================================================== -->
+    <div id="tab-tco" class="tab-pane">
+      <!-- TCO CARD -->
+      <div class="card">
+        <div class="card-title">📊 Total Cost of Ownership (TCO) & Lifetime Wealth Ledger</div>
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Total Vehicle Odometer (km)</label>
+            <input type="number" id="tco-odo" value="12500" step="500" oninput="runTcoAudit()" />
+          </div>
+          <div class="form-group">
+            <label>Total Maintenance Spend (₹) <span style="color:var(--maint);">(Auto-Sum)</span></label>
+            <input type="number" id="tco-maint" value="3200" step="500" oninput="runTcoAudit()" />
+          </div>
+          <div class="form-group">
+            <label>Tire Set Life Expectancy (km)</label>
+            <input type="number" id="tco-tire-km" value="45000" step="5000" oninput="runTcoAudit()" />
+          </div>
+          <div class="form-group">
+            <label>Tire Set Replacement Cost (₹)</label>
+            <input type="number" id="tco-tire-cost" value="42000" step="1000" oninput="runTcoAudit()" />
+          </div>
+        </div>
+
+        <div class="grid-results" style="margin-top: 1rem;">
+          <div>
+            <div class="stat-sub">Lifetime EV Running Cost</div>
+            <div id="tco-ev-total" class="stat-val">₹--</div>
+            <div class="stat-sub" id="tco-ev-per-km">₹-- / km</div>
+          </div>
+          <div>
+            <div class="stat-sub">Equivalent Petrol Fuel Cost</div>
+            <div id="tco-ice-total" class="stat-val" style="color:var(--text-muted);">₹--</div>
+            <div class="stat-sub">@ 14 km/L & ₹103/L</div>
+          </div>
+          <div>
+            <div class="stat-sub">Net Lifetime Savings</div>
+            <div id="tco-net-savings" class="stat-val" style="color:var(--success);">₹--</div>
+            <div class="stat-sub">Direct pocket wealth</div>
+          </div>
+          <div>
+            <div class="stat-sub">CO₂ Tailpipe Emissions Saved</div>
+            <div id="tco-co2" class="stat-val" style="color:var(--primary);">-- kg</div>
+            <div class="stat-sub">clean green kilometers</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WARRANTY & INSURANCE VAULT CARD -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
+        <div class="card-title" style="color:var(--primary);">
+          <span>🛡️ Traction Battery Warranty & EV Insurance Compliance Vault</span>
+        </div>
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Warranty Expiry Target</label>
+            <input type="text" value="8 Years / 1,60,000 km" disabled style="color:var(--primary);" />
+          </div>
+          <div class="form-group">
+            <label>Warranty Remaining Distance</label>
+            <input type="text" id="vault-warranty-km" disabled style="color:var(--success); font-weight:700;" value="1,54,600 km remaining" />
+          </div>
+          <div class="form-group">
+            <label>Insurance Renewal Date</label>
+            <input type="date" id="vault-ins-date" value="2027-08-15" />
+          </div>
+        </div>
+
+        <div style="margin-top: 0.75rem; background: #060a12; padding: 0.75rem; border-radius: 0.4rem; border: 1px solid #1a2538;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase;">
+            Mandatory EV Insurance Add-ons Audit
+          </div>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8rem;">
+            <label style="display:flex; align-items:center; gap:0.35rem; color:var(--text);">
+              <input type="checkbox" checked style="width:auto;" /> Zero Depreciation (Nil Dep)
+            </label>
+            <label style="display:flex; align-items:center; gap:0.35rem; color:var(--text);">
+              <input type="checkbox" checked style="width:auto;" /> Battery Protection Cover
+            </label>
+            <label style="display:flex; align-items:center; gap:0.35rem; color:var(--text);">
+              <input type="checkbox" checked style="width:auto;" /> Return to Invoice (RTI)
+            </label>
+            <label style="display:flex; align-items:center; gap:0.35rem; color:var(--text);">
+              <input type="checkbox" checked style="width:auto;" /> Roadside EV Emergency Assistance
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- EMERGENCY HARDWARE & OFFLINE PROTOCOL CHECKLIST -->
+      <div class="card" style="border-color: rgba(239, 68, 68, 0.4);">
+        <div class="card-title" style="color:var(--danger);">
+          <span>🚨 Emergency Hardware & Highway Stranding Protocols</span>
+        </div>
+        <div style="font-size:0.8rem; color:var(--text); line-height:1.6;">
+          <div style="margin-bottom:0.6rem;"><strong>🧰 Trunk & Glovebox Offline Hardware Checklist:</strong></div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:0.5rem; margin-bottom:0.75rem;">
+            <label style="display:flex; align-items:center; gap:0.35rem;"><input type="checkbox" checked style="width:auto;" /> 12V Lithium Jump-Starter Pack</label>
+            <label style="display:flex; align-items:center; gap:0.35rem;"><input type="checkbox" checked style="width:auto;" /> Earthing Bypass / Socket Tester</label>
+            <label style="display:flex; align-items:center; gap:0.35rem;"><input type="checkbox" checked style="width:auto;" /> 15A 15-meter Heavy Duty Cord</label>
+            <label style="display:flex; align-items:center; gap:0.35rem;"><input type="checkbox" checked style="width:auto;" /> Tire Inflator & Tubeless Repair Kit</label>
+          </div>
+          <div style="background:#060a12; padding:0.6rem 0.75rem; border-radius:0.35rem; border:1px solid #1a2538; font-size:0.75rem; color:var(--text-muted);">
+            📞 <strong>Offline CPO Emergency Hotlines:</strong> Zeon: 1800-572-8877 | Tata Power: 1800-209-5161 | Jio-bp: 1800-891-9023
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HUD MODAL FOR SCREENSHOT ==================== -->
+  <div id="hud-modal" onclick="if(event.target === this) toggleHUD(false)">
+    <div class="hud-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+        <div>
+          <h2 style="font-size: 1.15rem; color: var(--primary);">📸 Highway Road HUD Briefing</h2>
+          <div id="hud-meta" style="font-size: 0.75rem; color: var(--text-muted);"></div>
+        </div>
+        <button class="btn-secondary" style="padding: 0.3rem 0.7rem; font-weight: 700;" onclick="toggleHUD(false)">✕ Close</button>
+      </div>
+
+      <div id="hud-content"></div>
+
+      <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--card-border); display: flex; justify-content: space-between; font-size: 0.8rem;">
+        <span>📸 <em>Tip: Take an iPhone screenshot now for offline lock-screen guidance.</em></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchMainTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+      if (tabId === 'tab-aero') renderAeroTable();
+      if (tabId === 'tab-solar') { runSolarSim(); auditGridLoad(); }
+      if (tabId === 'tab-tco') runTcoAudit();
+      if (tabId === 'tab-battery') auditCellDelta();
+      if (tabId === 'tab-maint') renderMaintenanceTab();
+      if (tabId === 'tab-wallets') auditWallets();
+      if (tabId === 'tab-hotel') runHotelAudit();
+    }
+
+    function toggleDriverMode() {
+      const mode = document.getElementById('drv-mode').value;
+      document.getElementById('drv-box-day-rate').style.display = mode === 'day' ? 'block' : 'none';
+      document.getElementById('drv-box-days').style.display = mode === 'day' ? 'block' : 'none';
+      document.getElementById('drv-box-batta').style.display = mode === 'day' ? 'block' : 'none';
+
+      document.getElementById('drv-box-hour-rate').style.display = mode === 'hour' ? 'block' : 'none';
+      document.getElementById('drv-box-trip-hours').style.display = mode === 'hour' ? 'block' : 'none';
+
+      document.getElementById('drv-box-fixed-amt').style.display = mode === 'fixed' ? 'block' : 'none';
+      calculateTrip();
+    }
+
+    function getDriverExpense() {
+      const mode = document.getElementById('drv-mode').value;
+      if (mode === 'day') {
+        const rate = parseFloat(document.getElementById('drv-day-rate').value) || 0;
+        const days = parseFloat(document.getElementById('drv-days-count').value) || 1;
+        const batta = parseFloat(document.getElementById('drv-batta').value) || 0;
+        const total = (rate * days) + batta;
+        return {
+          total: total,
+          summary: `(${days} d @ ₹${rate} + ₹${batta} batta)`
+        };
+      } else if (mode === 'hour') {
+        const hrRate = parseFloat(document.getElementById('drv-hour-rate').value) || 0;
+        const hrs = parseFloat(document.getElementById('drv-total-hours').value) || 0;
+        const total = hrRate * hrs;
+        return {
+          total: total,
+          summary: `(${hrs} hrs @ ₹${hrRate}/hr)`
+        };
+      } else if (mode === 'fixed') {
+        const amt = parseFloat(document.getElementById('drv-fixed-amt').value) || 0;
+        return {
+          total: amt,
+          summary: `(Fixed Lump Sum)`
+        };
+      } else {
+        return { total: 0, summary: `(Self Driven)` };
+      }
+    }
+
+    // Legs Data matching user's exact real-world scenario with Plan-B redundancy buffer
+    let legsData = [
+      { 
+        id: 1, 
+        name: "Leg 1: Departure to Stop 1 Charger", 
+        startOdo: 5400,
+        endOdo: 5550,
+        dist: 150, 
+        whkm: 152, 
+        actualSoc: 40, 
+        plugInSoc: 40, 
+        plugOutSoc: 90,  
+        chargeMins: 35,  
+        cpoName: "Highway 60 kW DC Charger", 
+        dcRate: 20.00, 
+        gstMode: "exclusive", 
+        miscFee: 0, 
+        cashbackMode: "5", 
+        cashbackPct: 5.0, 
+        tollFee: 185, 
+        planBDist: 32, // Next alternative charger distance (km)
+        chargerKw: 60, 
+        isFinal: false 
+      },
+      { 
+        id: 2, 
+        name: "Leg 2: Stop 1 to Stop 2 / Return", 
+        startOdo: 5550,
+        endOdo: 5720,
+        dist: 170, 
+        whkm: 130, 
+        actualSoc: null, 
+        plugInSoc: null, 
+        plugOutSoc: 80, 
+        chargeMins: 30, 
+        cpoName: "Public DC Fast Charger #2", 
+        dcRate: 21.00, 
+        gstMode: "exclusive", 
+        miscFee: 0, 
+        cashbackMode: "5", 
+        cashbackPct: 5.0, 
+        tollFee: 210, 
+        planBDist: 28,
+        chargerKw: 60, 
+        isFinal: false 
+      },
+      { 
+        id: 3, 
+        name: "Leg 3: Final Leg to Home", 
+        startOdo: 5720,
+        endOdo: 5900,
+        dist: 180, 
+        whkm: 125, 
+        actualSoc: null, 
+        plugInSoc: null, 
+        plugOutSoc: 100, 
+        chargeMins: 0, 
+        cpoName: "", 
+        dcRate: 0, 
+        gstMode: "inclusive", 
+        miscFee: 0, 
+        cashbackMode: "0", 
+        cashbackPct: 0.0, 
+        tollFee: 165, 
+        planBDist: 0,
+        chargerKw: 0, 
+        isFinal: true 
+      }
+    ];
+
+    function toggleTariffMode() {
+      const mode = document.getElementById('cfg-tariff-mode').value;
+      document.getElementById('box-marginal-preset').style.display = mode === 'marginal' ? 'block' : 'none';
+      document.getElementById('box-solar-rate').style.display = mode === 'solar' ? 'block' : 'none';
+      document.getElementById('box-telescopic').style.display = mode === 'telescopic' ? 'block' : 'none';
+      document.getElementById('box-custom-rate').style.display = mode === 'custom' ? 'block' : 'none';
+      calculateTrip();
+    }
+
+    function getEffectivePack() {
+      const nominal = parseFloat(document.getElementById('cfg-pack').value) || 38.0;
+      const soh = parseFloat(document.getElementById('cfg-soh').value) || 100.0;
+      return nominal * (soh / 100);
+    }
+
+    function syncSohFromConfig() {
+      const soh = document.getElementById('cfg-soh').value;
+      document.getElementById('diag-soh-input').value = soh;
+      calculateTrip();
+    }
+
+    function updateSohFromTab() {
+      const soh = document.getElementById('diag-soh-input').value;
+      document.getElementById('cfg-soh').value = soh;
+      calculateTrip();
+      auditCellDelta();
+    }
+
+    function updateInitialOdo() {
+      const start = parseFloat(document.getElementById('cfg-start-odo').value) || 0;
+      if (legsData.length > 0) {
+        legsData[0].startOdo = start;
+        legsData[0].endOdo = start + legsData[0].dist;
+        chainOdometers();
+      }
+      renderLegsUI();
+      calculateTrip();
+      renderMaintenanceTab();
+    }
+
+    function chainOdometers() {
+      for (let i = 1; i < legsData.length; i++) {
+        legsData[i].startOdo = legsData[i-1].endOdo;
+        legsData[i].endOdo = legsData[i].startOdo + legsData[i].dist;
+      }
+    }
+
+    function calculateTNEBEnergyCharge(units) {
+      if (units <= 0) return 0;
+      let bill = 0;
+      if (units <= 500) {
+        const slab2 = Math.max(0, Math.min(units, 400) - 100);
+        const slab3 = Math.max(0, units - 400);
+        bill = (slab2 * 4.70) + (slab3 * 6.30);
+      } else {
+        const slab2 = Math.max(0, Math.min(units, 400) - 100);
+        const slab3 = Math.max(0, Math.min(units, 500) - 400);
+        const slab4 = Math.max(0, Math.min(units, 600) - 500);
+        const slab5 = Math.max(0, Math.min(units, 800) - 600);
+        const slab6 = Math.max(0, Math.min(units, 1000) - 800);
+        const slab7 = Math.max(0, units - 1000);
+        bill = (slab2 * 4.70) + (slab3 * 6.30) + (slab4 * 8.40) + (slab5 * 9.45) + (slab6 * 10.50) + (slab7 * 11.55);
+      }
+      return bill;
+    }
+
+    function getHomeACRateInfo(meterUnits) {
+      const mode = document.getElementById('cfg-tariff-mode').value;
+      if (mode === 'marginal') {
+        const rate = parseFloat(document.getElementById('cfg-marginal-slab').value) || 8.40;
+        return {
+          cost: meterUnits * rate,
+          effectiveRate: rate,
+          explanation: `Marginal Domestic Slab: <strong>₹${rate.toFixed(2)} / unit</strong>. Base loads use lower tiers; EV units are billed at this top marginal slab.`
+        };
+      } else if (mode === 'solar') {
+        const lcoe = parseFloat(document.getElementById('cfg-solar-lcoe').value) || 0.0;
+        return {
+          cost: meterUnits * lcoe,
+          effectiveRate: lcoe,
+          explanation: `Rooftop Solar Mode: <strong>₹${lcoe.toFixed(2)} / unit</strong>. Powered directly by home solar generation under net metering.`
+        };
+      } else if (mode === 'telescopic') {
+        const baseline = parseFloat(document.getElementById('cfg-baseline-units').value) || 450;
+        const totalUnits = baseline + meterUnits;
+        const baseBill = calculateTNEBEnergyCharge(baseline);
+        const newBill = calculateTNEBEnergyCharge(totalUnits);
+        const marginalCost = Math.max(0, newBill - baseBill);
+        const effectiveRate = meterUnits > 0 ? (marginalCost / meterUnits) : 0;
+        return {
+          cost: marginalCost,
+          effectiveRate: effectiveRate,
+          explanation: `Telescopic Meter: Base (${baseline} u) = ₹${baseBill.toFixed(0)} → With EV (${totalUnits.toFixed(1)} u) = ₹${newBill.toFixed(0)}. Net added EV cost: <strong>₹${marginalCost.toFixed(2)}</strong> (avg <strong>₹${effectiveRate.toFixed(2)}/unit</strong>).`
+        };
+      } else {
+        const rate = parseFloat(document.getElementById('cfg-custom-rate').value) || 8.50;
+        return {
+          cost: meterUnits * rate,
+          effectiveRate: rate,
+          explanation: `Fixed Flat Rate Mode: <strong>₹${rate.toFixed(2)} / unit</strong> applied across all replenishment units.`
+        };
+      }
+    }
+
+    function resetDefaults() {
+      document.getElementById('cfg-pack').value = 38.0;
+      document.getElementById('cfg-soh').value = 100;
+      document.getElementById('diag-soh-input').value = 100;
+      document.getElementById('cfg-depart-soc').value = 100;
+      document.getElementById('cfg-start-odo').value = 5400;
+      document.getElementById('home-pre-time-in').value = "21:15";
+      document.getElementById('home-pre-time-out').value = "07:15";
+      document.getElementById('home-pre-soc-in').value = 27;
+      document.getElementById('home-pre-soc-out').value = 100;
+      document.getElementById('drv-mode').value = "day";
+      document.getElementById('drv-day-rate').value = 1000;
+      document.getElementById('drv-days-count').value = 1;
+      document.getElementById('drv-batta').value = 250;
+      toggleDriverMode();
+
+      document.getElementById('cfg-ac-eff').value = "0.88";
+      document.getElementById('cfg-tariff-mode').value = "marginal";
+      document.getElementById('cfg-marginal-slab').value = "8.40";
+      toggleTariffMode();
+
+      legsData = [
+        { id: 1, name: "Leg 1: Departure to Stop 1 Charger", startOdo: 5400, endOdo: 5550, dist: 150, whkm: 152, actualSoc: 40, plugInSoc: 40, plugOutSoc: 90, chargeMins: 35, cpoName: "Highway 60 kW DC Charger", dcRate: 20.00, gstMode: "exclusive", miscFee: 0, cashbackMode: "5", cashbackPct: 5.0, tollFee: 185, planBDist: 32, chargerKw: 60, isFinal: false },
+        { id: 2, name: "Leg 2: Stop 1 to Stop 2 / Return", startOdo: 5550, endOdo: 5720, dist: 170, whkm: 130, actualSoc: null, plugInSoc: null, plugOutSoc: 80, chargeMins: 30, cpoName: "Public DC Fast Charger #2", dcRate: 21.00, gstMode: "exclusive", miscFee: 0, cashbackMode: "5", cashbackPct: 5.0, tollFee: 210, planBDist: 28, chargerKw: 60, isFinal: false },
+        { id: 3, name: "Leg 3: Final Leg to Home", startOdo: 5720, endOdo: 5900, dist: 180, whkm: 125, actualSoc: null, plugInSoc: null, plugOutSoc: 100, chargeMins: 0, cpoName: "", dcRate: 0, gstMode: "inclusive", miscFee: 0, cashbackMode: "0", cashbackPct: 0.0, tollFee: 165, planBDist: 0, chargerKw: 0, isFinal: true }
+      ];
+      renderLegsUI();
+      calculateTrip();
+      runHotelAudit();
+    }
+
+    function addChargingStop() {
+      const currentCount = legsData.length;
+      const oldFinal = legsData[currentCount - 1];
+      oldFinal.isFinal = false;
+      oldFinal.name = `Leg ${currentCount}: To En-Route Charger #${currentCount}`;
+      oldFinal.plugInSoc = null;
+      oldFinal.plugOutSoc = 80;
+      oldFinal.chargeMins = 30;
+      oldFinal.dcRate = 21.00;
+      oldFinal.gstMode = "exclusive";
+      oldFinal.miscFee = 0;
+      oldFinal.cashbackMode = "5";
+      oldFinal.cashbackPct = 5.0;
+      oldFinal.tollFee = 150;
+      oldFinal.planBDist = 25;
+      oldFinal.cpoName = `Highway Charger #${currentCount}`;
+      oldFinal.chargerKw = 60;
+
+      const lastEndOdo = oldFinal.endOdo;
+      legsData.push({
+        id: Date.now(),
+        name: `Leg ${currentCount + 1}: Final Leg to Home`,
+        startOdo: lastEndOdo,
+        endOdo: lastEndOdo + 120,
+        dist: 120,
+        whkm: 125,
+        actualSoc: null,
+        plugInSoc: null,
+        plugOutSoc: 100,
+        chargeMins: 0,
+        cpoName: "",
+        dcRate: 0,
+        gstMode: "inclusive",
+        miscFee: 0,
+        cashbackMode: "0",
+        cashbackPct: 0.0,
+        tollFee: 120,
+        planBDist: 0,
+        chargerKw: 0,
+        isFinal: true
+      });
+
+      renderLegsUI();
+      calculateTrip();
+    }
+
+    function removeStop(index) {
+      if (legsData.length <= 1) return alert("Must have at least one driving leg.");
+      legsData.splice(index, 1);
+      
+      legsData[legsData.length - 1].isFinal = true;
+      legsData[legsData.length - 1].name = `Leg ${legsData.length}: Final Leg to Home`;
+
+      for (let i = 0; i < legsData.length - 1; i++) {
+        legsData[i].name = `Leg ${i + 1}: Highway Leg to Charger #${i + 1}`;
+      }
+      chainOdometers();
+      renderLegsUI();
+      calculateTrip();
+    }
+
+    function setPresetWhkm(legIdx, whkm) {
+      legsData[legIdx].whkm = whkm;
+      renderLegsUI();
+      calculateTrip();
+    }
+
+    function updateCashbackMode(idx, val) {
+      legsData[idx].cashbackMode = val;
+      if (val === '5') legsData[idx].cashbackPct = 5.0;
+      else if (val === '0') legsData[idx].cashbackPct = 0.0;
+      calculateTrip();
+    }
+
+    function updatePlugInSoc(idx, val) {
+      if (val === '' || isNaN(val)) legsData[idx].plugInSoc = null;
+      else legsData[idx].plugInSoc = parseFloat(val);
+      calculateTrip();
+    }
+
+    function updateOdoField(idx, type, val) {
+      const num = parseFloat(val) || 0;
+      if (type === 'start') {
+        legsData[idx].startOdo = num;
+        legsData[idx].dist = Math.max(0, legsData[idx].endOdo - num);
+      } else if (type === 'end') {
+        legsData[idx].endOdo = num;
+        legsData[idx].dist = Math.max(0, num - legsData[idx].startOdo);
+      } else if (type === 'dist') {
+        legsData[idx].dist = num;
+        legsData[idx].endOdo = legsData[idx].startOdo + num;
+      }
+      chainOdometers();
+      renderLegsUI();
+      calculateTrip();
+    }
+
+    function renderLegsUI() {
+      const container = document.getElementById('legs-wrapper');
+      container.innerHTML = legsData.map((leg, idx) => {
+        const isFirst = idx === 0;
+        const isFinal = leg.isFinal;
+
+        return `
+          <div class="leg-card">
+            <div class="leg-tag">
+              <span>${leg.name}</span>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span id="leg-depart-lbl-${idx}" style="color:var(--text-muted); font-size:0.75rem; font-weight:normal;"></span>
+                ${!isFirst && legsData.length > 1 ? `<button class="btn-danger" onclick="removeStop(${idx})">Delete Stop</button>` : ''}
+              </div>
+            </div>
+
+            <!-- ODOMETER, TOLL & PLAN-B REDUNDANCY TRACKING -->
+            <div class="grid-inputs">
+              <div class="form-group">
+                <label>Start Odometer (km)</label>
+                <input type="number" value="${leg.startOdo}" oninput="updateOdoField(${idx}, 'start', this.value)" />
+              </div>
+              <div class="form-group">
+                <label>Arrival Odometer (km)</label>
+                <input type="number" value="${leg.endOdo}" oninput="updateOdoField(${idx}, 'end', this.value)" />
+              </div>
+              <div class="form-group">
+                <label>Leg Distance (km)</label>
+                <input type="number" value="${leg.dist}" oninput="updateOdoField(${idx}, 'dist', this.value)" />
+              </div>
+              <div class="form-group">
+                <label>Fastag Highway Tolls (₹)</label>
+                <input type="number" value="${leg.tollFee || 0}" step="10" placeholder="e.g. 185" oninput="updateVal(${idx}, 'tollFee', this.value)" />
+              </div>
+              <div class="form-group">
+                <label>Actual Arrival SoC (%)</label>
+                <input type="number" placeholder="e.g. 40" value="${leg.actualSoc !== null ? leg.actualSoc : ''}" oninput="updateActualSoc(${idx}, this.value)" />
+                <div id="leg-variance-box-${idx}"></div>
+              </div>
+            </div>
+
+            <div class="grid-inputs" style="margin-top:0.4rem;">
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Cruising Pacing (Wh/km)</label>
+                <input type="number" id="leg-whkm-input-${idx}" value="${leg.whkm}" oninput="updateVal(${idx}, 'whkm', this.value)" />
+                <div class="preset-group">
+                  <span class="preset-chip ${leg.whkm === 120 ? 'active' : ''}" onclick="setPresetWhkm(${idx}, 120)">80 km/h (120)</span>
+                  <span class="preset-chip ${leg.whkm === 125 ? 'active' : ''}" onclick="setPresetWhkm(${idx}, 125)">85 km/h (125)</span>
+                  <span class="preset-chip ${leg.whkm === 132 ? 'active' : ''}" onclick="setPresetWhkm(${idx}, 132)">90 km/h (132)</span>
+                  <span class="preset-chip ${leg.whkm === 152 ? 'active' : ''}" onclick="setPresetWhkm(${idx}, 152)">100 km/h (152)</span>
+                  <span class="preset-chip ${leg.whkm === 165 ? 'active' : ''}" onclick="setPresetWhkm(${idx}, 165)">110+ km/h (165)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Leg Driving Telemetry -->
+            <div class="grid-results">
+              <div>
+                <div class="stat-sub">Arrival SoC at ${isFinal ? 'Home' : 'Stop'}</div>
+                <div id="leg-arrival-${idx}" class="stat-val">--%</div>
+                <div id="leg-badge-${idx}" class="badge">--</div>
+              </div>
+              <div>
+                <div class="stat-sub">Calculated Real 100% Range</div>
+                <div id="leg-100-range-${idx}" class="stat-val" style="color:var(--success); font-size:1.15rem;">-- km</div>
+                <div class="stat-sub">(At this leg's pace)</div>
+              </div>
+              <div>
+                <div class="stat-sub">Real Range / 1% SoC</div>
+                <div id="leg-km-per-pct-${idx}" class="stat-val" style="color:var(--primary); font-size:1.15rem;">-- km</div>
+                <div class="stat-sub" id="leg-pct-per-10km-${idx}">--% per 10 km</div>
+              </div>
+              <div>
+                <div class="stat-sub">Safe Range From Leg Start</div>
+                <div id="leg-safe-range-${idx}" class="stat-val" style="font-size:1.15rem; color:var(--text);">-- km</div>
+                <div class="stat-sub">(SoC down to 15% reserve)</div>
+              </div>
+            </div>
+
+            <!-- COST PER KM PROGRESS STRIP -->
+            <div class="cost-progress-strip">
+              <div class="cost-stat-box">
+                <div class="cost-stat-lbl">This Leg Energy ₹/km</div>
+                <div id="leg-cost-km-${idx}" class="cost-stat-val">₹--</div>
+                <div class="cost-stat-sub" id="leg-cost-sub-${idx}">--</div>
+              </div>
+              <div class="cost-stat-box">
+                <div class="cost-stat-lbl">Stage Tolls / Fastag</div>
+                <div id="leg-toll-disp-${idx}" class="cost-stat-val" style="color:var(--solar);">₹--</div>
+                <div class="cost-stat-sub" id="leg-toll-sub-${idx}">--</div>
+              </div>
+              <div class="cost-stat-box">
+                <div class="cost-stat-lbl">Cumulative Energy ₹/km</div>
+                <div id="leg-cum-cost-km-${idx}" class="cost-stat-val" style="color:var(--primary);">₹--</div>
+                <div class="cost-stat-sub" id="leg-cum-sub-${idx}">--</div>
+              </div>
+              <div class="cost-stat-box">
+                <div class="cost-stat-lbl">Active Energy Source</div>
+                <div id="leg-energy-source-${idx}" style="font-weight:700; color:var(--text); margin-top:0.15rem;">--</div>
+                <div class="cost-stat-sub" id="leg-source-rate-${idx}">--</div>
+              </div>
+            </div>
+
+            ${!isFinal ? `
+              <!-- DC CHARGING BOX WITH PLAN-B DIVERSION CHECK -->
+              <div class="charge-box">
+                <div style="font-weight:700; font-size:0.85rem; color:var(--primary); margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+                  <span>⚡ DC Fast Charge Stop #${idx + 1} (${leg.cpoName || 'Public CPO'})</span>
+                  <div>
+                    <span class="cashback-badge">💳 SBI 5% Cashback</span>
+                    <span class="badge badge-warn" style="margin-left:0.3rem;">⚠️ 10m Idle Grace</span>
+                  </div>
+                </div>
+                
+                <div class="grid-inputs">
+                  <div class="form-group">
+                    <label>🔌 Plug-In SoC (%)</label>
+                    <input type="number" id="cs-plugin-input-${idx}" value="${leg.plugInSoc !== null ? leg.plugInSoc : ''}" placeholder="Auto arrival %" min="1" max="99" oninput="updatePlugInSoc(${idx}, this.value)" />
+                  </div>
+                  <div class="form-group">
+                    <label>🔋 Plug-Out SoC (%)</label>
+                    <input type="number" value="${leg.plugOutSoc}" min="30" max="100" oninput="updateVal(${idx}, 'plugOutSoc', this.value)" />
+                  </div>
+                  <div class="form-group">
+                    <label>⏱️ Actual Charge Time (mins)</label>
+                    <input type="number" value="${leg.chargeMins || 35}" min="1" max="180" oninput="updateVal(${idx}, 'chargeMins', this.value)" />
+                  </div>
+                  <div class="form-group">
+                    <label>Plan-B Backup Station Dist (km)</label>
+                    <input type="number" value="${leg.planBDist || 30}" min="0" max="100" oninput="updateVal(${idx}, 'planBDist', this.value)" />
+                  </div>
+                  <div class="form-group">
+                    <label>Charger Rating</label>
+                    <select onchange="updateVal(${idx}, 'chargerKw', this.value)">
+                      <option value="30" ${leg.chargerKw == 30 ? 'selected' : ''}>30 kW DC</option>
+                      <option value="50" ${leg.chargerKw == 50 ? 'selected' : ''}>50 kW DC</option>
+                      <option value="60" ${leg.chargerKw == 60 ? 'selected' : ''}>60 kW DC (Std Fast)</option>
+                      <option value="120" ${leg.chargerKw == 120 ? 'selected' : ''}>120 kW Hypercharger</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Base Tariff Rate (₹/kWh)</label>
+                    <input type="number" value="${leg.dcRate}" step="0.25" oninput="updateVal(${idx}, 'dcRate', this.value)" />
+                  </div>
+                  <div class="form-group">
+                    <label>GST Mode</label>
+                    <select onchange="updateVal(${idx}, 'gstMode', this.value)">
+                      <option value="exclusive" ${leg.gstMode === 'exclusive' ? 'selected' : ''}>+ 18% GST Added</option>
+                      <option value="inclusive" ${leg.gstMode === 'inclusive' ? 'selected' : ''}>GST Inclusive (Included)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Payment / Card Cashback</label>
+                    <select onchange="updateCashbackMode(${idx}, this.value)">
+                      <option value="5" ${leg.cashbackMode === '5' ? 'selected' : ''}>💳 SBI Cashback Card (5%)</option>
+                      <option value="0" ${leg.cashbackMode === '0' ? 'selected' : ''}>No Cashback (0%)</option>
+                      <option value="custom" ${leg.cashbackMode === 'custom' ? 'selected' : ''}>Custom Cashback %</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Session / Parking Fee (₹)</label>
+                    <input type="number" value="${leg.miscFee || 0}" step="5" placeholder="e.g. 25" oninput="updateVal(${idx}, 'miscFee', this.value)" />
+                  </div>
+                </div>
+
+                <!-- PLUG IN/OUT DELTA & TAX INVOICE STRIP -->
+                <div style="margin-top:0.5rem; background:#050912; padding:0.55rem 0.75rem; border-radius:0.35rem; border:1px solid #1a2538; font-size:0.78rem;">
+                  <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.4rem; border-bottom:1px solid #1a2538; padding-bottom:0.35rem; margin-bottom:0.35rem;">
+                    <div>
+                      <span class="plug-metric-chip" id="cs-plug-summary-${idx}">Plug: --% → --% (+--%)</span>
+                      <span style="margin-left:0.4rem;">Units: <strong id="cs-units-${idx}" style="color:var(--text);">-- kWh</strong></span>
+                    </div>
+                    <div>
+                      Gross Bill: <span id="cs-gross-bill-${idx}" style="color:var(--text-muted); font-weight:600;">₹--</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="color:var(--primary);">
+                      Base: <span id="cs-base-energy-${idx}">₹--</span> | GST: <span id="cs-gst-val-${idx}">₹--</span> | 💳 <span id="cs-cashback-val-${idx}">-₹0.00</span>
+                    </div>
+                    <div>
+                      Net Out-of-Pocket: <strong id="cs-cost-${idx}" class="cost-highlight" style="font-size:1rem; color:var(--success);">₹--</strong>
+                      <span style="font-size:0.7rem; color:var(--text-muted); margin-left:0.3rem;" id="cs-effective-rate-${idx}">--</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- PLAN-B REDUNDANCY BUFFER STRIP -->
+                <div style="margin-top:0.45rem; background:#080d18; border:1px solid #1a2538; border-radius:0.35rem; padding:0.45rem 0.65rem; font-size:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                  <span>Plan-B Station Redundancy Check:</span>
+                  <span id="cs-planb-status-${idx}" class="planb-chip">Checking buffer...</span>
+                </div>
+
+                <div class="hero-range-banner">
+                  <div>
+                    <div class="hero-label">Calculated Real 100% Range</div>
+                    <div id="cs-full100-range-${idx}" class="hero-val">-- km</div>
+                    <div class="stat-sub">(Full pack at next leg's pace)</div>
+                  </div>
+                  <div>
+                    <div class="hero-label">Range at Plug-Out Level</div>
+                    <div id="cs-actual-max-${idx}" class="hero-val" style="color:var(--primary);">-- km</div>
+                    <div class="stat-sub" id="cs-charge-level-lbl-${idx}">--% SoC to 0%</div>
+                  </div>
+                  <div>
+                    <div class="hero-label">Safe Highway Range</div>
+                    <div id="cs-actual-safe-${idx}" class="hero-val" style="color:#f8fafc;">-- km</div>
+                    <div class="stat-sub">(Preserving 15% safety buffer)</div>
+                  </div>
+                  <div>
+                    <div class="hero-label">Delivered Power & Time</div>
+                    <div id="cs-duration-${idx}" class="hero-val" style="color:var(--warning);">-- kW avg</div>
+                    <div class="stat-sub" id="cs-power-curve-${idx}">-- mins elapsed</div>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <!-- HOME REPLENISHMENT BOX WITH PLUG-IN / PLUG-OUT -->
+              <div class="charge-box" style="border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.05);">
+                <div style="font-weight:700; font-size:0.85rem; color:var(--success); margin-bottom:0.5rem; display:flex; justify-content:space-between;">
+                  <span>🔌 Final Home AC Replenishment (Reset Pack to 100% SoC)</span>
+                  <span id="home-slab-badge" style="color:var(--primary); font-size:0.75rem;"></span>
+                </div>
+                <div class="grid-inputs">
+                  <div class="form-group">
+                    <label>🔌 Plug-In SoC (%)</label>
+                    <input type="number" id="home-plugin-input" value="${leg.plugInSoc !== null ? leg.plugInSoc : ''}" placeholder="Auto arrival %" min="1" max="99" oninput="updatePlugInSoc(${idx}, this.value)" />
+                  </div>
+                  <div class="form-group">
+                    <label>🔋 Plug-Out Target (%)</label>
+                    <input type="number" value="${leg.plugOutSoc}" min="50" max="100" oninput="updateVal(${idx}, 'plugOutSoc', this.value)" />
+                  </div>
+                  <div>
+                    <div class="stat-sub">Battery Deficit Added</div>
+                    <div id="home-kwh-pack" style="font-weight:700; font-size:1rem; margin-top:0.35rem;">-- kWh</div>
+                  </div>
+                  <div>
+                    <div class="stat-sub">Grid Meter Drawn (at AC Eff)</div>
+                    <div id="home-units-meter" style="font-weight:700; font-size:1rem; margin-top:0.35rem;">-- units</div>
+                  </div>
+                  <div>
+                    <div class="stat-sub">Effective Marginal Cost</div>
+                    <div id="home-replenish-cost" style="font-weight:700; font-size:1.1rem; color:var(--success); margin-top:0.35rem;">₹--</div>
+                  </div>
+                  <div>
+                    <div class="stat-sub">Estimated 3.3 kW AC Time</div>
+                    <div id="home-ac-time" style="font-weight:700; font-size:1.1rem; color:var(--text); margin-top:0.35rem;">-- hrs</div>
+                  </div>
+                </div>
+              </div>
+            `}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateVal(idx, key, val) {
+      if (key === 'gstMode' || key === 'cpoName' || key === 'cashbackMode') {
+        legsData[idx][key] = val;
+      } else {
+        legsData[idx][key] = parseFloat(val) || 0;
+      }
+      calculateTrip();
+    }
+
+    function updateActualSoc(idx, val) {
+      if (val === '' || isNaN(val)) legsData[idx].actualSoc = null;
+      else legsData[idx].actualSoc = parseFloat(val);
+      calculateTrip();
+    }
+
+    function calculatePreHomeSession(packEffective, acEff, homeTariff) {
+      const timeInStr = document.getElementById('home-pre-time-in').value || "21:15";
+      const timeOutStr = document.getElementById('home-pre-time-out').value || "07:15";
+      const socIn = parseFloat(document.getElementById('home-pre-soc-in').value) || 27;
+      const socOut = parseFloat(document.getElementById('home-pre-soc-out').value) || 100;
+
+      const [inH, inM] = timeInStr.split(':').map(Number);
+      const [outH, outM] = timeOutStr.split(':').map(Number);
+      let diffMins = (outH * 60 + outM) - (inH * 60 + inM);
+      if (diffMins <= 0) diffMins += 24 * 60;
+
+      const totalHours = diffMins / 60.0;
+      const deltaSoc = Math.max(0, socOut - socIn);
+      const kwhPack = (deltaSoc / 100.0) * packEffective;
+      const meterUnits = kwhPack / acEff;
+      
+      const activeDrawHours = meterUnits / 3.3;
+      const soakHours = Math.max(0, totalHours - activeDrawHours);
+
+      const cost = meterUnits * homeTariff;
+      const delivRate = kwhPack > 0 ? (cost / kwhPack) : 0;
+
+      document.getElementById('home-pre-summary').innerText = `Plug: ${socIn}% → ${socOut}% (+${deltaSoc}%)`;
+      document.getElementById('home-pre-total-time').innerText = `${Math.floor(totalHours)}h ${Math.round((totalHours % 1) * 60)}m`;
+      document.getElementById('home-pre-active-time').innerText = `${Math.floor(activeDrawHours)}h ${Math.round((activeDrawHours % 1) * 60)}m`;
+      document.getElementById('home-pre-soak-time').innerText = `${Math.round(soakHours * 60)}m`;
+      document.getElementById('home-pre-pack-kwh').innerText = `${kwhPack.toFixed(2)} kWh`;
+      document.getElementById('home-pre-meter-units').innerText = `${meterUnits.toFixed(2)} grid units`;
+      document.getElementById('home-pre-cost').innerText = `₹${cost.toFixed(2)}`;
+      document.getElementById('home-pre-rate').innerText = `₹${delivRate.toFixed(2)}/kWh deliv`;
+
+      return { kwhPack, meterUnits, cost, delivRate };
+    }
+
+    function calculateTrip() {
+      const nominalPack = parseFloat(document.getElementById('cfg-pack').value) || 38.0;
+      const soh = parseFloat(document.getElementById('cfg-soh').value) || 100.0;
+      const effectivePack = nominalPack * (soh / 100.0);
+      let currentSoC = parseFloat(document.getElementById('cfg-depart-soc').value) || 100;
+      const acEff = parseFloat(document.getElementById('cfg-ac-eff').value) || 0.88;
+
+      document.getElementById('header-pack-pill').innerText = `${effectivePack.toFixed(1)} kWh (${soh}% SOH)`;
+
+      const homeTariffBaseline = getHomeACRateInfo(30);
+      const preHome = calculatePreHomeSession(effectivePack, acEff, homeTariffBaseline.effectiveRate);
+      const effectiveHomeKwhCost = preHome.delivRate > 0 ? preHome.delivRate : (homeTariffBaseline.effectiveRate / acEff);
+
+      const driverInfo = getDriverExpense();
+
+      let cumulativeDist = 0;
+      let cumulativeNetCost = 0;
+      let cumulativeGrossCost = 0;
+      let cumulativeTolls = 0;
+      let totalDischarged = 0;
+      let totalCashback = 0;
+      let breakdownHtml = "";
+
+      legsData.forEach((leg, idx) => {
+        const departLbl = document.getElementById(`leg-depart-lbl-${idx}`);
+        if (departLbl) departLbl.innerText = `Depart: ${Math.round(currentSoC)}% SoC | Odo: ${leg.startOdo} km`;
+
+        if (leg.actualSoc !== null && leg.dist > 0) {
+          const deltaSocActual = currentSoC - leg.actualSoc;
+          const kwhActual = (deltaSocActual / 100.0) * effectivePack;
+          leg.whkm = Math.round((kwhActual * 1000.0) / leg.dist);
+          const whkmInput = document.getElementById(`leg-whkm-input-${idx}`);
+          if (whkmInput && document.activeElement !== whkmInput) whkmInput.value = leg.whkm;
+        }
+
+        const energy = (leg.dist * leg.whkm) / 1000;
+        const socDrop = (energy / effectivePack) * 100;
+        const arrivalSoC = Math.round(currentSoC - socDrop);
+
+        const full100Range = leg.whkm > 0 ? Math.round((effectivePack * 1000) / leg.whkm) : 0;
+        const kmPer1Pct = leg.whkm > 0 ? (effectivePack * 10) / leg.whkm : 0;
+        const pctPer10Km = kmPer1Pct > 0 ? (10 / kmPer1Pct) : 0;
+        const safeRange = Math.round(((currentSoC - 15) / 100 * effectivePack * 1000) / leg.whkm);
+
+        cumulativeDist += leg.dist;
+        totalDischarged += energy;
+        cumulativeTolls += (leg.tollFee || 0);
+
+        let legSource = "";
+        let legEffectiveUnitCost = 0;
+        let legCost = 0;
+
+        if (idx === 0) {
+          legSource = "Home AC (100% Start)";
+          legEffectiveUnitCost = effectiveHomeKwhCost;
+          legCost = energy * legEffectiveUnitCost;
+          cumulativeNetCost += legCost;
+          cumulativeGrossCost += legCost;
+        } else {
+          const prevStop = legsData[idx - 1];
+          legSource = `DC Charger #${idx}`;
+          
+          const prevPlugIn = prevStop.plugInSoc !== null ? prevStop.plugInSoc : (prevStop.actualSoc !== null ? prevStop.actualSoc : arrivalSoC);
+          const prevUnitsAdded = Math.max(0.1, ((prevStop.plugOutSoc - prevPlugIn) / 100) * effectivePack);
+          const prevBaseEnergy = prevUnitsAdded * prevStop.dcRate;
+          const prevGst = prevStop.gstMode === 'exclusive' ? (prevBaseEnergy * 0.18) : 0;
+          const prevGross = prevBaseEnergy + prevGst + (prevStop.miscFee || 0);
+          const prevCbPct = prevStop.cashbackMode === '5' ? 5.0 : (prevStop.cashbackMode === 'custom' ? (prevStop.cashbackPct || 0) : 0);
+          const prevCbAmt = prevGross * (prevCbPct / 100);
+          const prevNet = prevGross - prevCbAmt;
+
+          legEffectiveUnitCost = prevNet / prevUnitsAdded;
+          legCost = energy * legEffectiveUnitCost;
+          cumulativeNetCost += legCost;
+          cumulativeGrossCost += (energy * (prevGross / prevUnitsAdded));
+        }
+
+        const legCostPerKm = leg.dist > 0 ? (legCost / leg.dist) : 0;
+        const cumCostPerKm = cumulativeDist > 0 ? (cumulativeNetCost / cumulativeDist) : 0;
+
+        // DOM mappings
+        const arrivalElem = document.getElementById(`leg-arrival-${idx}`);
+        const full100Elem = document.getElementById(`leg-100-range-${idx}`);
+        const safeRangeElem = document.getElementById(`leg-safe-range-${idx}`);
+        const badgeElem = document.getElementById(`leg-badge-${idx}`);
+        const kmPerPctElem = document.getElementById(`leg-km-per-pct-${idx}`);
+        const pctPer10KmElem = document.getElementById(`leg-pct-per-10km-${idx}`);
+        const varBoxElem = document.getElementById(`leg-variance-box-${idx}`);
+
+        const legCostKmElem = document.getElementById(`leg-cost-km-${idx}`);
+        const legCostSubElem = document.getElementById(`leg-cost-sub-${idx}`);
+        const legTollDispElem = document.getElementById(`leg-toll-disp-${idx}`);
+        const legTollSubElem = document.getElementById(`leg-toll-sub-${idx}`);
+        const legCumCostKmElem = document.getElementById(`leg-cum-cost-km-${idx}`);
+        const legCumSubElem = document.getElementById(`leg-cum-sub-${idx}`);
+        const legSourceElem = document.getElementById(`leg-energy-source-${idx}`);
+        const legSourceRateElem = document.getElementById(`leg-source-rate-${idx}`);
+
+        if (arrivalElem) arrivalElem.innerText = arrivalSoC + "%";
+        if (full100Elem) full100Elem.innerText = full100Range + " km";
+        if (safeRangeElem) safeRangeElem.innerText = Math.max(0, safeRange) + " km";
+        if (kmPerPctElem) kmPerPctElem.innerText = kmPer1Pct.toFixed(2) + " km";
+        if (pctPer10KmElem) pctPer10KmElem.innerText = `${pctPer10Km.toFixed(1)}% per 10 km`;
+
+        if (legCostKmElem) legCostKmElem.innerText = "₹" + legCostPerKm.toFixed(2) + " / km";
+        if (legCostSubElem) legCostSubElem.innerText = `Net ₹${Math.round(legCost)} (${energy.toFixed(1)} kWh)`;
+        if (legTollDispElem) legTollDispElem.innerText = `₹${leg.tollFee || 0}`;
+        if (legTollSubElem) legTollSubElem.innerText = `Fastag toll charge`;
+        if (legCumCostKmElem) legCumCostKmElem.innerText = "₹" + cumCostPerKm.toFixed(2) + " / km";
+        if (legCumSubElem) legCumSubElem.innerText = `Energy: ₹${Math.round(cumulativeNetCost)} (${cumulativeDist} km)`;
+        if (legSourceElem) legSourceElem.innerText = legSource;
+        if (legSourceRateElem) legSourceRateElem.innerText = idx === 0 
+          ? `@ ₹${homeTariffBaseline.effectiveRate.toFixed(2)}/u (+12% AC loss)` 
+          : `@ net ₹${legEffectiveUnitCost.toFixed(2)}/kWh (post-5% cashback)`;
+
+        if (varBoxElem) {
+          if (leg.actualSoc !== null) {
+            varBoxElem.innerHTML = `
+              <div class="var-badge var-ahead">
+                Logged: ${leg.actualSoc}% (${leg.whkm} Wh/km)
+              </div>
+            `;
+          } else {
+            varBoxElem.innerHTML = "";
+          }
+        }
+
+        if (badgeElem) {
+          if (arrivalSoC <= 5) {
+            badgeElem.className = "badge badge-danger";
+            badgeElem.innerText = "Critical Depletion";
+          } else if (arrivalSoC < 15) {
+            badgeElem.className = "badge badge-warn";
+            badgeElem.innerText = "Buffer Tight (<15%)";
+          } else {
+            badgeElem.className = "badge badge-safe";
+            badgeElem.innerText = "Safe Buffer";
+          }
+        }
+
+        if (!leg.isFinal) {
+          const activePlugIn = leg.plugInSoc !== null ? leg.plugInSoc : (leg.actualSoc !== null ? leg.actualSoc : arrivalSoC);
+          const activePlugOut = leg.plugOutSoc;
+          const deltaSoc = Math.max(0, activePlugOut - activePlugIn);
+          const unitsAdded = (deltaSoc / 100) * effectivePack;
+          
+          const baseEnergyCost = unitsAdded * leg.dcRate;
+          const gstAmount = leg.gstMode === 'exclusive' ? (baseEnergyCost * 0.18) : 0;
+          const miscFee = leg.miscFee || 0;
+          const grossInvoice = baseEnergyCost + gstAmount + miscFee;
+
+          const cbPct = leg.cashbackMode === '5' ? 5.0 : (leg.cashbackMode === 'custom' ? (leg.cashbackPct || 0) : 0);
+          const cashbackAmount = grossInvoice * (cbPct / 100.0);
+          const netInvoice = grossInvoice - cashbackAmount;
+          totalCashback += cashbackAmount;
+
+          const effectiveStopRate = unitsAdded > 0 ? (netInvoice / unitsAdded) : leg.dcRate;
+          const elapsedMins = leg.chargeMins || 35;
+          const actualAvgPower = elapsedMins > 0 ? (unitsAdded / (elapsedMins / 60.0)) : 0;
+
+          const plugInInput = document.getElementById(`cs-plugin-input-${idx}`);
+          if (plugInInput && leg.plugInSoc === null) {
+            plugInInput.placeholder = `${activePlugIn}% (auto arrival)`;
+          }
+
+          const plugSummaryElem = document.getElementById(`cs-plug-summary-${idx}`);
+          const unitsElem = document.getElementById(`cs-units-${idx}`);
+          const baseElem = document.getElementById(`cs-base-energy-${idx}`);
+          const gstElem = document.getElementById(`cs-gst-val-${idx}`);
+          const grossElem = document.getElementById(`cs-gross-bill-${idx}`);
+          const cbElem = document.getElementById(`cs-cashback-val-${idx}`);
+          const costElem = document.getElementById(`cs-cost-${idx}`);
+          const effRateElem = document.getElementById(`cs-effective-rate-${idx}`);
+
+          const full100BoxElem = document.getElementById(`cs-full100-range-${idx}`);
+          const actualMaxElem = document.getElementById(`cs-actual-max-${idx}`);
+          const actualSafeElem = document.getElementById(`cs-actual-safe-${idx}`);
+          const levelLblElem = document.getElementById(`cs-charge-level-lbl-${idx}`);
+          const durElem = document.getElementById(`cs-duration-${idx}`);
+          const curveElem = document.getElementById(`cs-power-curve-${idx}`);
+          const planBStatusElem = document.getElementById(`cs-planb-status-${idx}`);
+
+          if (plugSummaryElem) plugSummaryElem.innerText = `Plug: ${activePlugIn}% → ${activePlugOut}% (+${deltaSoc}%)`;
+          if (unitsElem) unitsElem.innerText = unitsAdded.toFixed(2) + " kWh";
+          if (baseElem) baseElem.innerText = "₹" + baseEnergyCost.toFixed(1);
+          if (gstElem) gstElem.innerText = leg.gstMode === 'exclusive' ? ("₹" + gstAmount.toFixed(1)) : "Incl.";
+          if (grossElem) grossElem.innerText = "Gross: ₹" + grossInvoice.toFixed(2);
+          if (cbElem) cbElem.innerText = cbPct > 0 ? `-₹${cashbackAmount.toFixed(2)} (${cbPct}% SBI)` : "₹0.00 (0%)";
+          if (costElem) costElem.innerText = "₹" + netInvoice.toFixed(2);
+          if (effRateElem) effRateElem.innerText = `(Net ₹${effectiveStopRate.toFixed(2)}/kWh)`;
+
+          if (durElem) durElem.innerText = `${actualAvgPower.toFixed(1)} kW avg`;
+          if (curveElem) curveElem.innerText = `in ${elapsedMins} mins on ${leg.chargerKw || 60} kW gun`;
+
+          const nextLegPacing = legsData[idx + 1] ? legsData[idx + 1].whkm : leg.whkm;
+          const post100Range = Math.round((effectivePack * 1000) / nextLegPacing);
+          const postActualMax = Math.round((activePlugOut / 100 * effectivePack * 1000) / nextLegPacing);
+          const postActualSafe = Math.round(((activePlugOut - 15) / 100 * effectivePack * 1000) / nextLegPacing);
+
+          if (full100BoxElem) full100BoxElem.innerText = `${post100Range} km`;
+          if (actualMaxElem) actualMaxElem.innerText = `${postActualMax} km`;
+          if (actualSafeElem) actualSafeElem.innerText = `${postActualSafe} km`;
+          if (levelLblElem) levelLblElem.innerText = `At ${activePlugOut}% Plug-out SoC (to 0%)`;
+
+          // Plan-B Station Redundancy Check
+          const planBDist = leg.planBDist || 30;
+          const kmPer1PctArrival = (effectivePack * 10) / leg.whkm;
+          const arrivalRangeKm = activePlugIn * kmPer1PctArrival;
+          if (planBStatusElem) {
+            if (arrivalRangeKm >= (planBDist + 15)) {
+              planBStatusElem.className = "badge badge-safe";
+              planBStatusElem.innerText = `✅ Secure: ${Math.round(arrivalRangeKm)} km range vs ${planBDist} km diversion`;
+            } else if (arrivalRangeKm >= planBDist) {
+              planBStatusElem.className = "badge badge-warn";
+              planBStatusElem.innerText = `⚠️ Tight: ${Math.round(arrivalRangeKm)} km range vs ${planBDist} km diversion (<15% buffer)`;
+            } else {
+              planBStatusElem.className = "badge badge-danger";
+              planBStatusElem.innerText = `🚨 Critical: ${Math.round(arrivalRangeKm)} km range cannot reach ${planBDist} km backup!`;
+            }
+          }
+
+          const gstTag = leg.gstMode === 'exclusive' ? `+18% GST` : `GST incl.`;
+          const cbTag = cbPct > 0 ? `, -₹${cashbackAmount.toFixed(0)} SBI Cashback` : ``;
+
+          breakdownHtml += `
+            <div style="display:flex; justify-content:space-between; padding:0.25rem 0; border-bottom:1px solid #1a2538;">
+              <span>DC #${idx + 1} (${activePlugIn}% → ${activePlugOut}% in ${elapsedMins}m | ${unitsAdded.toFixed(1)} kWh @ ₹${leg.dcRate.toFixed(2)} [${gstTag}${cbTag}]):</span>
+              <span style="font-weight:600; color:var(--success);">₹${netInvoice.toFixed(2)} <span style="font-size:0.7rem; color:var(--text-muted); font-weight:normal;">(Gross ₹${grossInvoice.toFixed(0)})</span></span>
+            </div>
+          `;
+
+          currentSoC = activePlugOut;
+        } else {
+          const activeHomePlugIn = leg.plugInSoc !== null ? leg.plugInSoc : (leg.actualSoc !== null ? leg.actualSoc : arrivalSoC);
+          const activeHomePlugOut = leg.plugOutSoc;
+          const homeDeficit = Math.max(0, ((activeHomePlugOut - activeHomePlugIn) / 100) * effectivePack);
+          const homeMeterUnits = homeDeficit / acEff;
+          
+          const homeResult = getHomeACRateInfo(homeMeterUnits);
+          const homeHours = (homeMeterUnits / 3.3).toFixed(1);
+
+          const homePlugInInput = document.getElementById('home-plugin-input');
+          if (homePlugInInput && leg.plugInSoc === null) {
+            homePlugInInput.placeholder = `${activeHomePlugIn}% (auto arrival)`;
+          }
+
+          const defElem = document.getElementById('home-kwh-pack');
+          const meterElem = document.getElementById('home-units-meter');
+          const homeCostElem = document.getElementById('home-replenish-cost');
+          const homeTimeElem = document.getElementById('home-ac-time');
+          const slabBadge = document.getElementById('home-slab-badge');
+
+          if (defElem) defElem.innerText = homeDeficit.toFixed(2) + " kWh";
+          if (meterElem) meterElem.innerText = homeMeterUnits.toFixed(2) + " units";
+          if (homeCostElem) homeCostElem.innerText = "₹" + homeResult.cost.toFixed(2);
+          if (homeTimeElem) homeTimeElem.innerText = `~${homeHours} hrs`;
+          if (slabBadge) slabBadge.innerText = `Plug: ${activeHomePlugIn}% → ${activeHomePlugOut}% (@ ₹${homeResult.effectiveRate.toFixed(2)}/u)`;
+
+          document.getElementById('slab-explanation-tag').innerHTML = homeResult.explanation;
+
+          breakdownHtml += `
+            <div style="display:flex; justify-content:space-between; padding:0.25rem 0; border-bottom:1px solid #1a2538;">
+              <span>Home AC Post-Trip Reset (Plug: ${activeHomePlugIn}% → ${activeHomePlugOut}% | @ ₹${homeResult.effectiveRate.toFixed(2)}/u):</span>
+              <span style="font-weight:600;">₹${homeResult.cost.toFixed(2)} (${homeMeterUnits.toFixed(1)} units drawn, ~${homeHours}h)</span>
+            </div>
+          `;
+        }
+      });
+
+      // Add Driver breakdown line
+      if (driverInfo.total > 0) {
+        breakdownHtml += `
+          <div style="display:flex; justify-content:space-between; padding:0.25rem 0; border-bottom:1px solid #1a2538; color:var(--driver);">
+            <span>👨‍✈️ Driver Expense ${driverInfo.summary}:</span>
+            <span style="font-weight:700;">₹${driverInfo.total.toFixed(2)}</span>
+          </div>
+        `;
+      }
+
+      // Add Fastag Tolls breakdown line
+      if (cumulativeTolls > 0) {
+        breakdownHtml += `
+          <div style="display:flex; justify-content:space-between; padding:0.25rem 0; border-bottom:1px solid #1a2538; color:var(--solar);">
+            <span>🛣️ Total Fastag Highway Tolls Paid:</span>
+            <span style="font-weight:700;">₹${cumulativeTolls.toFixed(2)}</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('billing-breakdown').innerHTML = breakdownHtml;
+
+      // Driver calculations
+      const driverPerKm = cumulativeDist > 0 ? (driverInfo.total / cumulativeDist) : 0;
+      document.getElementById('drv-total-expense').innerText = `₹${driverInfo.total.toFixed(2)}`;
+      document.getElementById('drv-calc-breakdown').innerText = driverInfo.summary;
+      document.getElementById('drv-per-km-share').innerText = `₹${driverPerKm.toFixed(2)} / km`;
+      document.getElementById('driver-cost-badge').innerText = `+₹${driverPerKm.toFixed(2)} / km driver`;
+
+      const overallWhkm = cumulativeDist > 0 ? (totalDischarged * 1000) / cumulativeDist : 0;
+      const overallKmkwh = totalDischarged > 0 ? cumulativeDist / totalDischarged : 0;
+      const overall100Range = overallWhkm > 0 ? Math.round((effectivePack * 1000) / overallWhkm) : 0;
+      const overallKmPer1Pct = overallWhkm > 0 ? (effectivePack * 10) / overallWhkm : 0;
+      const overallPctPer10Km = overallKmPer1Pct > 0 ? (10 / overallKmPer1Pct) : 0;
+
+      const grandNetEnergyCostPerKm = cumulativeDist > 0 ? cumulativeNetCost / cumulativeDist : 0;
+      const grandTotalAllInclusiveSpend = cumulativeNetCost + driverInfo.total + cumulativeTolls;
+      const grandAllInclusiveCostPerKm = cumulativeDist > 0 ? (grandTotalAllInclusiveSpend / cumulativeDist) : 0;
+
+      // Comparative math vs Petrol car with same driver and tolls:
+      const petrolFuelCost = (cumulativeDist / 14) * 103;
+      const petrolTotalAllInclusive = petrolFuelCost + driverInfo.total + cumulativeTolls;
+      const netSavings = petrolTotalAllInclusive - grandTotalAllInclusiveSpend;
+
+      document.getElementById('tot-dist').innerText = cumulativeDist + " km";
+      document.getElementById('tot-whkm').innerText = Math.round(overallWhkm) + " Wh/km";
+      document.getElementById('tot-kmkwh').innerText = overallKmkwh.toFixed(2) + " km/kWh";
+      document.getElementById('tot-tolls-banner').innerText = `₹${cumulativeTolls.toFixed(0)}`;
+      document.getElementById('tot-cashback-sub').innerText = `Tolls: ₹${cumulativeTolls} | CB: ₹${totalCashback.toFixed(0)}`;
+      document.getElementById('tot-kwh').innerText = totalDischarged.toFixed(2) + " kWh";
+      
+      document.getElementById('tot-rate').innerText = "₹" + grandNetEnergyCostPerKm.toFixed(2) + " / km";
+      document.getElementById('tot-all-inclusive-rate').innerText = "₹" + grandAllInclusiveCostPerKm.toFixed(2) + " / km";
+      document.getElementById('tot-grand-cost').innerText = "₹" + Math.round(grandTotalAllInclusiveSpend);
+      document.getElementById('tot-cost-split-sub').innerText = `Energy: ₹${Math.round(cumulativeNetCost)} | Drv: ₹${Math.round(driverInfo.total)} | Toll: ₹${Math.round(cumulativeTolls)}`;
+      document.getElementById('net-savings').innerText = "₹" + Math.round(netSavings) + ` (${Math.round((netSavings/petrolTotalAllInclusive)*100)}% saved vs Petrol+Driver+Toll)`;
+    }
+
+    // ==========================================
+    // HOTEL & DESTINATION CHARGING ENGINE
+    // ==========================================
+    function runHotelAudit() {
+      const pack = getEffectivePack();
+      const infra = document.getElementById('hotel-infra-type').value;
+      const mode = document.getElementById('hotel-bill-mode').value;
+      const socIn = parseFloat(document.getElementById('hotel-soc-in').value) || 22;
+      const socOut = parseFloat(document.getElementById('hotel-soc-out').value) || 100;
+      const hoursAvail = parseFloat(document.getElementById('hotel-hours-avail').value) || 11;
+
+      document.getElementById('hotel-box-flat-fee').style.display = mode === 'flat' ? 'block' : 'none';
+      document.getElementById('hotel-box-metered-rate').style.display = mode === 'metered' ? 'block' : 'none';
+
+      let drawKw = 2.4;
+      let eff = 0.86;
+      if (infra === '15A') { drawKw = 2.4; eff = 0.86; }
+      else if (infra === '16A_Max') { drawKw = 3.3; eff = 0.88; }
+      else if (infra === 'Type2') { drawKw = 7.2; eff = 0.90; }
+
+      document.getElementById('hotel-summary-chip').innerText = `${infra} @ ${drawKw} kW (${infra === '15A' ? 'Portable 3-Pin' : 'Wallbox'})`;
+
+      const deltaSoc = Math.max(0, socOut - socIn);
+      const packKwh = (deltaSoc / 100.0) * pack;
+      const meterUnits = packKwh / eff;
+
+      const timeNeeded = meterUnits / drawKw;
+      let cost = 0;
+      if (mode === 'free') cost = 0;
+      else if (mode === 'flat') cost = parseFloat(document.getElementById('hotel-flat-fee').value) || 400;
+      else if (mode === 'metered') {
+        const rate = parseFloat(document.getElementById('hotel-metered-rate').value) || 12.0;
+        cost = meterUnits * rate;
+      }
+
+      const delivRate = packKwh > 0 ? (cost / packKwh) : 0;
+      const kmAvailable = Math.round((packKwh * 1000) / 125); // at 125 Wh/km return pace
+      const costPerKm = kmAvailable > 0 ? (cost / kmAvailable) : 0;
+
+      document.getElementById('hotel-res-pack-kwh').innerText = `${packKwh.toFixed(2)} kWh`;
+      document.getElementById('hotel-res-meter-units').innerText = `${meterUnits.toFixed(2)} units drawn`;
+      
+      const timeElem = document.getElementById('hotel-res-time-needed');
+      const timeStatusElem = document.getElementById('hotel-res-time-status');
+      timeElem.innerText = `${Math.floor(timeNeeded)}h ${Math.round((timeNeeded % 1) * 60)}m`;
+      if (timeNeeded <= hoursAvail) {
+        timeElem.style.color = "var(--success)";
+        timeStatusElem.innerText = `Full recovery within ${hoursAvail}h window`;
+      } else {
+        timeElem.style.color = "var(--warning)";
+        timeStatusElem.innerText = `Exceeds window by ${Math.round((timeNeeded - hoursAvail)*60)}m (will reach ~${Math.round(socIn + ((hoursAvail*drawKw*eff)/pack)*100)}%)`;
+      }
+
+      document.getElementById('hotel-res-cost').innerText = `₹${cost.toFixed(2)}`;
+      document.getElementById('hotel-res-deliv-rate').innerText = `₹${delivRate.toFixed(2)} / kWh delivered`;
+      document.getElementById('hotel-res-cost-km').innerText = `₹${costPerKm.toFixed(2)} / km`;
+    }
+
+    // ==========================================
+    // CPO WALLETS & FASTAG LIQUIDITY ENGINE
+    // ==========================================
+    function auditWallets() {
+      const zeon = parseFloat(document.getElementById('wal-zeon').value) || 0;
+      const tata = parseFloat(document.getElementById('wal-tata').value) || 0;
+      const jio = parseFloat(document.getElementById('wal-jio').value) || 0;
+      const statiq = parseFloat(document.getElementById('wal-statiq').value) || 0;
+      const relux = parseFloat(document.getElementById('wal-relux').value) || 0;
+      const fastag = parseFloat(document.getElementById('wal-fastag').value) || 0;
+
+      const totalLiquidity = zeon + tata + jio + statiq + relux + fastag;
+      document.getElementById('total-wallet-liquidity').innerText = `Total Liquidity: ₹${totalLiquidity.toLocaleString('en-IN')}`;
+
+      let warnings = [];
+      if (fastag < 500) warnings.push("⚠️ Fastag balance low (< ₹500). Recharge before entering highway toll plazas.");
+      if (zeon < 500) warnings.push("⚠️ Zeon wallet is below ₹500 minimum buffer.");
+      if (tata < 500) warnings.push("⚠️ Tata Power EZ Charge balance is below ₹500.");
+      if (jio < 300) warnings.push("⚠️ Jio-bp Pulse balance is below ₹300.");
+
+      const alertBox = document.getElementById('wallet-alert-box');
+      if (warnings.length > 0) {
+        alertBox.innerHTML = `
+          <div style="background:rgba(245, 158, 11, 0.15); border:1px solid var(--warning); padding:0.55rem 0.75rem; border-radius:0.35rem; color:var(--warning);">
+            <strong>Wallet Top-Up Alerts:</strong><br>${warnings.join('<br>')}
+          </div>
+        `;
+      } else {
+        alertBox.innerHTML = `
+          <div style="background:rgba(34, 197, 94, 0.15); border:1px solid var(--success); padding:0.55rem 0.75rem; border-radius:0.35rem; color:var(--success);">
+            ✅ All CPO and Fastag balances are adequately funded for highway travel.
+          </div>
+        `;
+      }
+    }
+
+    // ==========================================
+    // TPMS & 12V AUXILIARY HEALTH
+    // ==========================================
+    function auditTpms() {
+      const fl = parseFloat(document.getElementById('tpms-fl').value) || 34;
+      const fr = parseFloat(document.getElementById('tpms-fr').value) || 34;
+      const rl = parseFloat(document.getElementById('tpms-rl').value) || 34;
+      const rr = parseFloat(document.getElementById('tpms-rr').value) || 34;
+      const tread = parseFloat(document.getElementById('tpms-tread').value) || 7.2;
+
+      document.getElementById('maint-tread-val').innerText = `${tread.toFixed(1)} mm`;
+
+      const strip = document.getElementById('tpms-status-strip');
+      const minPsi = Math.min(fl, fr, rl, rr);
+      const maxPsi = Math.max(fl, fr, rl, rr);
+      const psiSpread = maxPsi - minPsi;
+
+      if (minPsi < 32) {
+        strip.innerHTML = `<span style="color:var(--danger); font-weight:700;">⚠️ Low Pressure Alert:</span> One or more tires are below 32 PSI. Cold tire target is 34-36 PSI to protect rolling range and tread wear.`;
+      } else if (psiSpread > 2) {
+        strip.innerHTML = `<span style="color:var(--warning); font-weight:700;">⚠️ Pressure Imbalance:</span> ${psiSpread} PSI variance across tires. Equalize to 34 PSI cold for even wear.`;
+      } else {
+        strip.innerHTML = `<span style="color:var(--success); font-weight:700;">✅ TPMS Status Optimal:</span> All 4 wheels balanced at ~${Math.round(minPsi)} PSI cold. Rolling resistance minimal.`;
+      }
+    }
+
+    function audit12vBattery() {
+      const volt = parseFloat(document.getElementById('aux-12v-volt').value) || 12.7;
+      const valElem = document.getElementById('maint-12v-val');
+      const statusElem = document.getElementById('maint-12v-status');
+      valElem.innerText = `${volt.toFixed(1)} V`;
+
+      if (volt >= 12.5) {
+        valElem.style.color = "var(--success)";
+        statusElem.innerText = "Healthy (100% Charge)";
+      } else if (volt >= 12.2) {
+        valElem.style.color = "var(--warning)";
+        statusElem.innerText = "Moderate (Inspection Due)";
+      } else {
+        valElem.style.color = "var(--danger)";
+        statusElem.innerText = "Degraded (Replace Immediately!)";
+      }
+    }
+
+    // ==========================================
+    // GRID SANCTIONED LOAD AUDITOR
+    // ==========================================
+    function auditGridLoad() {
+      const sanctioned = parseFloat(document.getElementById('grid-sanctioned-kw').value) || 5.0;
+      const evDraw = 3.3;
+      const baseLoad = parseFloat(document.getElementById('grid-base-load-kw').value) || 0.8;
+      const totalLoad = evDraw + baseLoad;
+      const box = document.getElementById('grid-load-status-box');
+
+      if (totalLoad <= sanctioned) {
+        box.innerHTML = `<span style="color:var(--success); font-weight:700;">✅ Demand Safe:</span> Total night demand is ${totalLoad.toFixed(1)} kW (well within your ${sanctioned.toFixed(1)} kW sanctioned limit).`;
+      } else {
+        box.innerHTML = `<span style="color:var(--danger); font-weight:700;">⚠️ Sanctioned Overload Risk:</span> Total demand is ${totalLoad.toFixed(1)} kW exceeding ${sanctioned.toFixed(1)} kW limit. Shift geysers/pumps away from EV charging window.`;
+      }
+    }
+
+    // ==========================================
+    // MAINTENANCE & WHEEL CARE LEDGER FUNCTIONS
+    // ==========================================
+    let defaultMaintLogs = [
+      { id: 1, date: "2026-08-15", odo: 1000, type: "Periodic Scheduled Service", center: "MG Authorized Service Center", cost: 0, notes: "1,000 km 1st Inspection check, fluid levels & OBD scan OK" },
+      { id: 2, date: "2026-09-20", odo: 4800, type: "Wheel Alignment & Balancing", center: "Bridgestone Tyre Point", cost: 1150, notes: "3D Wheel Alignment calibrated, weights balanced, 34 PSI set" }
+    ];
+
+    function getMaintLogs() {
+      const stored = localStorage.getItem('ev_maint_ledger_v17');
+      if (stored) {
+        try { return JSON.parse(stored); } catch(e) {}
+      }
+      return defaultMaintLogs;
+    }
+
+    function saveMaintLogs(logs) {
+      localStorage.setItem('ev_maint_ledger_v17', JSON.stringify(logs));
+    }
+
+    function addMaintenanceRecord() {
+      const dateVal = document.getElementById('maint-input-date').value || new Date().toISOString().slice(0, 10);
+      const odoVal = parseFloat(document.getElementById('maint-input-odo').value) || 0;
+      const typeVal = document.getElementById('maint-input-type').value;
+      const costVal = parseFloat(document.getElementById('maint-input-cost').value) || 0;
+      const centerVal = document.getElementById('maint-input-center').value || "Workshop";
+      const notesVal = document.getElementById('maint-input-notes').value || "None";
+
+      const newRec = {
+        id: Date.now(),
+        date: dateVal,
+        odo: odoVal,
+        type: typeVal,
+        center: centerVal,
+        cost: costVal,
+        notes: notesVal
+      };
+
+      const logs = getMaintLogs();
+      logs.unshift(newRec);
+      saveMaintLogs(logs);
+
+      document.getElementById('maint-input-cost').value = "";
+      document.getElementById('maint-input-notes').value = "";
+
+      renderMaintenanceTab();
+      runTcoAudit();
+      alert("✅ Maintenance record saved to ledger!");
+    }
+
+    function deleteMaintRecord(id) {
+      if (!confirm("Are you sure you want to delete this maintenance entry?")) return;
+      let logs = getMaintLogs();
+      logs = logs.filter(l => l.id !== id);
+      saveMaintLogs(logs);
+      renderMaintenanceTab();
+      runTcoAudit();
+    }
+
+    function renderMaintenanceTab() {
+      const currentOdo = parseFloat(document.getElementById('cfg-start-odo').value) || 5400;
+      document.getElementById('maint-odo-badge').innerText = `Current Odo: ${currentOdo.toLocaleString()} km`;
+      document.getElementById('maint-input-odo').value = currentOdo;
+
+      const logs = getMaintLogs();
+      const tbody = document.getElementById('maint-table-body');
+
+      let totalSpend = 0;
+      let lastWaOdo = null;
+
+      logs.forEach(l => {
+        totalSpend += l.cost;
+        if (lastWaOdo === null && (l.type.includes("Wheel Alignment") || l.type.includes("Balancing"))) {
+          lastWaOdo = l.odo;
+        }
+      });
+
+      document.getElementById('maint-total-spend-val').innerText = `₹${totalSpend.toLocaleString('en-IN')}`;
+      const maintPerKm = currentOdo > 0 ? (totalSpend / currentOdo) : 0;
+      document.getElementById('maint-per-km-val').innerText = `₹${maintPerKm.toFixed(2)} / km lifetime`;
+
+      const tcoMaintInput = document.getElementById('tco-maint');
+      if (tcoMaintInput) tcoMaintInput.value = totalSpend;
+
+      const warrantyRemaining = Math.max(0, 160000 - currentOdo);
+      document.getElementById('vault-warranty-km').value = `${warrantyRemaining.toLocaleString()} km remaining`;
+
+      const waDistValElem = document.getElementById('maint-wa-dist-val');
+      const waStatusElem = document.getElementById('maint-wa-status');
+      if (lastWaOdo !== null) {
+        const distSinceWa = Math.max(0, currentOdo - lastWaOdo);
+        waDistValElem.innerText = `${distSinceWa} km`;
+        if (distSinceWa <= 5000) {
+          waDistValElem.style.color = "var(--success)";
+          waStatusElem.innerText = `Aligned at ${lastWaOdo} km (Status: Good)`;
+        } else if (distSinceWa <= 7500) {
+          waDistValElem.style.color = "var(--warning)";
+          waStatusElem.innerText = `Aligned at ${lastWaOdo} km (Due in ${7500 - distSinceWa} km)`;
+        } else {
+          waDistValElem.style.color = "var(--danger)";
+          waStatusElem.innerText = `Aligned at ${lastWaOdo} km (Overdue for Alignment!)`;
+        }
+      } else {
+        waDistValElem.innerText = `${currentOdo} km`;
+        waStatusElem.innerText = `Initial Factory Alignment`;
+      }
+
+      if (!logs.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No service records logged yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = logs.map(l => {
+        let typeBadgeClass = "badge-safe";
+        if (l.type.includes("Alignment")) typeBadgeClass = "badge-maint";
+        else if (l.type.includes("Scheduled")) typeBadgeClass = "badge-pill";
+        else if (l.type.includes("Filter") || l.type.includes("Brake")) typeBadgeClass = "badge-warn";
+
+        return `
+          <tr>
+            <td><strong>${l.date}</strong></td>
+            <td><strong>${l.odo.toLocaleString()} km</strong></td>
+            <td><span class="badge ${typeBadgeClass}">${l.type}</span></td>
+            <td>${l.center}</td>
+            <td style="font-weight:700; color:var(--success);">₹${l.cost.toLocaleString('en-IN')}</td>
+            <td style="font-size:0.75rem; color:var(--text-muted);">${l.notes}</td>
+            <td><button class="btn-danger" style="padding:0.2rem 0.5rem;" onclick="deleteMaintRecord(${l.id})">Delete</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function exportMaintenanceCSV() {
+      const logs = getMaintLogs();
+      if (!logs.length) return alert('No maintenance records to export.');
+      let csv = "Date,Odometer (km),Service Type,Workshop / Service Center,Cost (INR),Notes\n";
+      logs.forEach(l => {
+        csv += `"${l.date}","${l.odo}","${l.type}","${l.center}","${l.cost}","${l.notes.replace(/"/g, '""')}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ev_maintenance_ledger_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    function renderAeroTable() {
+      const pack = getEffectivePack();
+      const speeds = [
+        { speed: "70 km/h", wh: 112, desc: "Acoustic Eco Cruise" },
+        { speed: "80 km/h", wh: 120, desc: "Standard Dual Carriageway" },
+        { speed: "85 km/h", wh: 125, desc: "Optimal Sweet Spot" },
+        { speed: "90 km/h", wh: 132, desc: "Active Overtaking Flow" },
+        { speed: "100 km/h", wh: 148, desc: "Expressway Limit" },
+        { speed: "110 km/h", wh: 168, desc: "High Drag Penalty" }
+      ];
+
+      const tbody = document.getElementById('aero-table-body');
+      tbody.innerHTML = speeds.map(s => {
+        const full100 = Math.round((pack * 1000) / s.wh);
+        const safe = Math.round(((pack * 0.85) * 1000) / s.wh);
+        const perPct = ((pack * 10) / s.wh).toFixed(2);
+        const costKm = ((s.wh / 1000) * 9.55).toFixed(2);
+        return `
+          <tr>
+            <td><strong>${s.speed}</strong><br><span style="font-size:0.7rem; color:var(--text-muted);">${s.desc}</span></td>
+            <td><strong style="color:var(--primary);">${s.wh}</strong> Wh/km</td>
+            <td>${perPct} km</td>
+            <td><strong style="color:var(--success);">${full100} km</strong></td>
+            <td>${safe} km</td>
+            <td style="color:var(--success); font-weight:700;">₹${costKm}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function runSolarSim() {
+      const dailyUnits = parseFloat(document.getElementById('sol-daily-units').value) || 13.5;
+      const monthlyKm = parseFloat(document.getElementById('sol-monthly-km').value) || 1200;
+      const whkm = parseFloat(document.getElementById('sol-whkm').value) || 125;
+
+      const monthlyBatteryKwh = (monthlyKm * whkm) / 1000;
+      const monthlyGridUnitsDrawn = monthlyBatteryKwh / 0.88;
+      const monthlySolarGen = dailyUnits * 30;
+
+      const coveragePct = Math.min(100, (monthlySolarGen / monthlyGridUnitsDrawn) * 100);
+      const gridCostAvoided = monthlyGridUnitsDrawn * 8.40;
+      const petrolMonthlyCost = (monthlyKm / 14) * 103;
+      const annualSavingsVsPetrol = (petrolMonthlyCost * 12) - (monthlyGridUnitsDrawn * 0 * 12);
+
+      document.getElementById('sol-res-kwh').innerText = monthlyBatteryKwh.toFixed(1) + " kWh";
+      document.getElementById('sol-res-meter-units').innerText = `(${monthlyGridUnitsDrawn.toFixed(1)} grid units drawn)`;
+      document.getElementById('sol-res-coverage').innerText = coveragePct.toFixed(1) + "%";
+      document.getElementById('sol-res-savings').innerText = "₹" + Math.round(gridCostAvoided) + " / mo";
+      document.getElementById('sol-res-annual').innerText = "₹" + Math.round(annualSavingsVsPetrol).toLocaleString('en-IN');
+    }
+
+    function runTcoAudit() {
+      const odo = parseFloat(document.getElementById('tco-odo').value) || 12500;
+      const maint = parseFloat(document.getElementById('tco-maint').value) || 3200;
+      const tireCost = parseFloat(document.getElementById('tco-tire-cost').value) || 42000;
+      const tireLife = parseFloat(document.getElementById('tco-tire-km').value) || 45000;
+
+      const energyCostAvg = odo * 1.65;
+      const tireAmortized = (odo / tireLife) * tireCost;
+      const totalEvSpend = energyCostAvg + maint + tireAmortized;
+      const evPerKm = totalEvSpend / odo;
+
+      const iceFuelTotal = (odo / 14) * 103;
+      const iceMaint = (odo / 10000) * 9500;
+      const iceTotal = iceFuelTotal + iceMaint + ((odo / 55000) * 32000);
+
+      const netSavings = iceTotal - totalEvSpend;
+      const co2Kg = (odo / 14) * 2.31;
+
+      document.getElementById('tco-ev-total').innerText = "₹" + Math.round(totalEvSpend).toLocaleString('en-IN');
+      document.getElementById('tco-ev-per-km').innerText = "₹" + evPerKm.toFixed(2) + " / km (all-inclusive)";
+      document.getElementById('tco-ice-total').innerText = "₹" + Math.round(iceTotal).toLocaleString('en-IN');
+      document.getElementById('tco-net-savings').innerText = "₹" + Math.round(netSavings).toLocaleString('en-IN');
+      document.getElementById('tco-co2').innerText = Math.round(co2Kg).toLocaleString('en-IN') + " kg";
+    }
+
+    function auditCellDelta() {
+      const delta = parseFloat(document.getElementById('diag-cell-delta').value) || 12;
+      const daysAc = parseFloat(document.getElementById('diag-days-ac').value) || 0;
+      const soh = parseFloat(document.getElementById('diag-soh-input').value) || 100;
+
+      const badge = document.getElementById('diag-status-badge');
+      const desc = document.getElementById('diag-status-desc');
+
+      if (delta <= 15 && daysAc <= 7) {
+        badge.className = "badge badge-safe";
+        badge.innerText = "Pristine Balancing (<15 mV)";
+        desc.innerHTML = `Pack cells are tightly balanced (${delta} mV deviation). Nominal SOH is at ${soh}%. Top-balancing is active.`;
+      } else if (delta <= 30) {
+        badge.className = "badge badge-warn";
+        badge.innerText = "Normal Wear (15-30 mV)";
+        desc.innerHTML = `Cell delta is ${delta} mV. If more than 7 days have passed since a full AC charge, plug in your 3.3 kW home charger overnight to 100% to allow passive top-balancing.`;
+      } else {
+        badge.className = "badge badge-danger";
+        badge.innerText = "Balancing Drift (>30 mV)";
+        desc.innerHTML = `Cell delta is elevated (${delta} mV). Complete two consecutive 100% slow AC charging cycles and leave plugged in for 60 minutes after full charge to reset BMS Coulomb drift.`;
+      }
+    }
+
+    function logCurrentSoh() {
+      const odo = prompt("Enter current vehicle odometer (km):", "5400");
+      if (!odo) return;
+      const soh = document.getElementById('diag-soh-input').value;
+      const pack = getEffectivePack().toFixed(2);
+      const delta = document.getElementById('diag-cell-delta').value;
+
+      const entry = {
+        date: new Date().toLocaleDateString('en-IN'),
+        odo: odo + " km",
+        soh: soh + "%",
+        pack: pack + " kWh",
+        delta: delta + " mV"
+      };
+
+      const logs = JSON.parse(localStorage.getItem('ev_soh_logbook') || '[]');
+      logs.unshift(entry);
+      localStorage.setItem('ev_soh_logbook', JSON.stringify(logs));
+      renderSohLogs();
+    }
+
+    function renderSohLogs() {
+      const logs = JSON.parse(localStorage.getItem('ev_soh_logbook') || '[]');
+      const tbody = document.getElementById('soh-log-body');
+      if (!logs.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No SOH records logged yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = logs.map(l => `
+        <tr>
+          <td>${l.date}</td>
+          <td>${l.odo}</td>
+          <td style="color:var(--primary); font-weight:700;">${l.soh}</td>
+          <td>${l.pack}</td>
+          <td style="color:var(--success); font-weight:600;">${l.delta}</td>
+        </tr>
+      `).join('');
+    }
+
+    function toggleHUD(show) {
+      const modal = document.getElementById('hud-modal');
+      if (show) {
+        modal.style.display = 'flex';
+        renderHUDContent();
+      } else {
+        modal.style.display = 'none';
+      }
+    }
+
+    function renderHUDContent() {
+      const effectivePack = getEffectivePack();
+      const soh = document.getElementById('cfg-soh').value;
+      const totalDist = document.getElementById('tot-dist').innerText;
+      const totalWh = document.getElementById('tot-whkm').innerText;
+      const real100 = document.getElementById('tot-100-range').innerText;
+      const totalCost = document.getElementById('tot-grand-cost').innerText;
+      const allIncRate = document.getElementById('tot-all-inclusive-rate').innerText;
+      const energyRate = document.getElementById('tot-rate').innerText;
+      const tollsPaid = document.getElementById('tot-tolls-banner').innerText;
+
+      document.getElementById('hud-meta').innerText = `Pack: ${effectivePack.toFixed(1)} kWh (${soh}% SOH) | Loop: ${totalDist} @ ${totalWh} | All-Inc: ${allIncRate} (Tolls: ${tollsPaid})`;
+
+      let currentSoC = parseFloat(document.getElementById('cfg-depart-soc').value) || 100;
+      let html = `
+        <table style="width:100%; border-collapse:collapse; font-size:0.8rem; text-align:left;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--primary); color:var(--primary);">
+              <th style="padding:0.4rem 0.2rem;">Stage / Leg</th>
+              <th style="padding:0.4rem 0.2rem;">Dist</th>
+              <th style="padding:0.4rem 0.2rem;">Toll</th>
+              <th style="padding:0.4rem 0.2rem;">Plug In → Out</th>
+              <th style="padding:0.4rem 0.2rem;">Energy ₹/km</th>
+              <th style="padding:0.4rem 0.2rem;">Cumul ₹/km</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      legsData.forEach((leg, i) => {
+        const energy = (leg.dist * leg.whkm) / 1000;
+        const socDrop = (energy / effectivePack) * 100;
+        const arrival = Math.round(currentSoC - socDrop);
+        const legCostKm = document.getElementById(`leg-cost-km-${i}`) ? document.getElementById(`leg-cost-km-${i}`).innerText : "--";
+        const cumCostKm = document.getElementById(`leg-cum-cost-km-${i}`) ? document.getElementById(`leg-cum-cost-km-${i}`).innerText : "--";
+        
+        const plugIn = leg.plugInSoc !== null ? leg.plugInSoc : (leg.actualSoc !== null ? leg.actualSoc : arrival);
+        const plugOut = leg.plugOutSoc;
+
+        html += `
+          <tr style="border-bottom:1px solid #1a2538;">
+            <td style="padding:0.5rem 0.2rem; font-weight:700;">#${i+1} ${leg.name.replace(/Leg \d+: /, '')}</td>
+            <td style="padding:0.5rem 0.2rem;">${leg.dist} km</td>
+            <td style="padding:0.5rem 0.2rem; color:var(--solar); font-weight:600;">₹${leg.tollFee || 0}</td>
+            <td style="padding:0.5rem 0.2rem; color:var(--primary); font-size:0.75rem;">${plugIn}% → ${plugOut}%</td>
+            <td style="padding:0.5rem 0.2rem; font-weight:700; color:var(--success);">${legCostKm}</td>
+            <td style="padding:0.5rem 0.2rem; font-weight:700; color:#f8fafc;">${cumCostKm}</td>
+          </tr>
+        `;
+
+        if (!leg.isFinal) currentSoC = plugOut;
+      });
+
+      html += `
+          </tbody>
+        </table>
+        <div style="margin-top:0.75rem; background:#060a12; padding:0.6rem; border-radius:0.4rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.4rem; font-size:0.8rem;">
+          <span>All-Inc Spend: <strong style="color:var(--primary);">${totalCost}</strong></span>
+          <span>All-Inc Running: <strong style="color:var(--primary);">${allIncRate}</strong></span>
+          <span>Total Fastag Tolls: <strong style="color:var(--solar);">${tollsPaid}</strong></span>
+        </div>
+      `;
+
+      document.getElementById('hud-content').innerHTML = html;
+    }
+
+    function saveToHistory() {
+      const trip = {
+        date: new Date().toLocaleDateString('en-IN'),
+        stops: legsData.length - 1,
+        dist: document.getElementById('tot-dist').innerText,
+        whkm: document.getElementById('tot-whkm').innerText,
+        full100Range: document.getElementById('tot-100-range').innerText,
+        allIncCost: document.getElementById('tot-grand-cost').innerText,
+        allIncRate: document.getElementById('tot-all-inclusive-rate').innerText,
+        energyRate: document.getElementById('tot-rate').innerText,
+        tolls: document.getElementById('tot-tolls-banner').innerText
+      };
+      const list = JSON.parse(localStorage.getItem('ev_dynamic_trips') || '[]');
+      list.unshift(trip);
+      localStorage.setItem('ev_dynamic_trips', JSON.stringify(list));
+      alert("Highway trip saved to local history.");
+    }
+
+    function exportCSV() {
+      const list = JSON.parse(localStorage.getItem('ev_dynamic_trips') || '[]');
+      if (!list.length) return alert('No trips saved to export.');
+      let csv = "Date,Stops,Total Distance,Wh/km,Calculated Real 100% Range,All-Inclusive Total Spend,All-Inclusive Cost per km,Energy-Only Cost per km,Total Tolls Paid\n";
+      list.forEach(t => {
+        csv += `"${t.date}","${t.stops}","${t.dist}","${t.whkm}","${t.full100Range}","${t.allIncCost}","${t.allIncRate}","${t.energyRate}","${t.tolls || '₹0'}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ev_trips_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const dateInput = document.getElementById('maint-input-date');
+    if (dateInput) dateInput.value = todayStr;
+
+    renderLegsUI();
+    calculateTrip();
+    renderAeroTable();
+    renderSohLogs();
+    renderMaintenanceTab();
+    auditWallets();
+    auditTpms();
+    audit12vBattery();
+    auditGridLoad();
+  </script>
+</body>
+</html>
