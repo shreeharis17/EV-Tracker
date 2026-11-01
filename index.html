@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EV Master Command Suite v33 (NHAI 200-Trip Pass & Zero-Toll Fleet Edition)</title>
+  <title>EV Master Command Suite v34 (Universal Auto-Save, Zero-Toll & Ultimate Fleet Edition)</title>
   <!-- iOS PWA Standalone App Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -414,7 +414,10 @@
         <h1>⚡ EV Master Command Suite (Standalone App)</h1>
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">All-in-One Highway, Hotel AC, Plan-B Redundancy, CPO Wallets, TPMS, 12V, Solar & TCO Hub</div>
       </div>
-      <div style="display: flex; gap: 0.4rem; align-items: center;">
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span id="autosave-status-pill" style="font-size:0.72rem; color:var(--success); font-weight:700; background:rgba(34,197,94,0.12); padding:0.25rem 0.55rem; border-radius:0.3rem; border:1px solid rgba(34,197,94,0.3); transition:all 0.2s ease;">
+          ● Auto-Saved
+        </span>
         <button class="btn-hud" onclick="toggleHUD(true)">📸 HUD</button>
         <div class="badge-pill" id="header-pack-pill">38.0 kWh (100% SOH)</div>
       </div>
@@ -2572,7 +2575,7 @@
       if (tabId === 'tab-tco') { runTcoAudit(); if (typeof auditServiceCountdown === 'function') auditServiceCountdown(); if (typeof auditBackupStats === 'function') auditBackupStats(); }
       if (tabId === 'tab-battery') { auditCellDelta(); runLifetimeAudit(); if (typeof auditBmsEqualization === 'function') auditBmsEqualization(); if (typeof auditThermalSoak === 'function') auditThermalSoak(); }
       if (tabId === 'tab-maint') { renderMaintenanceTab(); if (typeof auditTireMatrix === 'function') auditTireMatrix(); if (typeof audit12vParasitic === 'function') audit12vParasitic(); }
-      if (tabId === 'tab-wallets') { auditWallets(); if (typeof auditCorridorTolls === 'function') auditCorridorTolls(); }
+      if (tabId === 'tab-wallets') { auditWallets(); if (typeof auditAnnualPass === 'function') auditAnnualPass(); }
       if (tabId === 'tab-hotel') runHotelAudit();
       if (tabId === 'tab-trips') renderLifetimeTripsLedger();
     }
@@ -4789,7 +4792,7 @@
       const trips = getLifetimeTrips();
       const maint = getMaintLogs();
       const soh = getLifetimeLogs();
-      const crossings = parseInt(document.getElementById('pass-crossings-used')?.value || 73);
+      const crossings = parseInt(document.getElementById('pass-crossings-used')?.value || 18);
 
       const tElem = document.getElementById('backup-trips-count');
       if (tElem) tElem.innerText = `${trips.length} Trips`;
@@ -4813,7 +4816,7 @@
         sohMilestones: getLifetimeLogs(),
         tripHistory: JSON.parse(localStorage.getItem('ev_dynamic_trips') || '[]'),
         annualPass: {
-          crossingsUsed: parseInt(document.getElementById('pass-crossings-used')?.value || 73),
+          crossingsUsed: parseInt(document.getElementById('pass-crossings-used')?.value || 18),
           annualFee: parseFloat(document.getElementById('tco-pass-fee')?.value || 3075),
           mode: document.getElementById('toll-mode-select')?.value || 'pass_200'
         },
@@ -4905,6 +4908,94 @@
         alert("❌ Invalid JSON string: " + err.message);
       }
     }
+
+    // =========================================================================
+    // UNIVERSAL AUTO-SAVE & STATE HYDRATION ENGINE (v34)
+    // =========================================================================
+    const AUTOSAVE_STORAGE_KEY = 'ev_field_autosave_v34';
+    const LEGS_STORAGE_KEY = 'ev_active_legs_v34';
+    let autosaveDebounceTimer = null;
+
+    function triggerUniversalAutoSave() {
+      const pill = document.getElementById('autosave-status-pill');
+      if (pill) {
+        pill.innerText = "● Saving...";
+        pill.style.color = "var(--solar)";
+        pill.style.borderColor = "var(--solar)";
+      }
+
+      clearTimeout(autosaveDebounceTimer);
+      autosaveDebounceTimer = setTimeout(() => {
+        const state = {};
+        const elements = document.querySelectorAll('input, select, textarea');
+
+        elements.forEach(el => {
+          if (!el.id || el.type === 'file' || el.id === 'backup-paste-area' || el.id.startsWith('leg-') || el.id.startsWith('cs-')) {
+            return;
+          }
+
+          if (el.type === 'checkbox') {
+            state[el.id] = el.checked;
+          } else {
+            state[el.id] = el.value;
+          }
+        });
+
+        localStorage.setItem(AUTOSAVE_STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(LEGS_STORAGE_KEY, JSON.stringify(legsData));
+
+        if (pill) {
+          pill.innerText = "● Auto-Saved";
+          pill.style.color = "var(--success)";
+          pill.style.borderColor = "rgba(34,197,94,0.3)";
+        }
+      }, 300);
+    }
+
+    function hydrateAutoSavedState() {
+      const savedLegs = localStorage.getItem(LEGS_STORAGE_KEY);
+      if (savedLegs) {
+        try {
+          const parsedLegs = JSON.parse(savedLegs);
+          if (Array.isArray(parsedLegs) && parsedLegs.length > 0) {
+            legsData = parsedLegs;
+          }
+        } catch (e) {
+          console.warn("Could not parse saved legs:", e);
+        }
+      }
+
+      const savedState = localStorage.getItem(AUTOSAVE_STORAGE_KEY);
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState);
+          Object.keys(state).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              if (el.type === 'checkbox') {
+                el.checked = Boolean(state[id]);
+              } else {
+                el.value = state[id];
+              }
+            }
+          });
+        } catch (e) {
+          console.warn("Could not parse saved form state:", e);
+        }
+      }
+    }
+
+    document.addEventListener('input', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
+        triggerUniversalAutoSave();
+      }
+    });
+
+    document.addEventListener('change', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
+        triggerUniversalAutoSave();
+      }
+    });
 
     function toggleHUD(show) {
       const modal = document.getElementById('hud-modal');
@@ -5234,7 +5325,7 @@
 ];
 
     function getLifetimeTrips() {
-      const stored = localStorage.getItem('ev_master_lifetime_trips_v33');
+      const stored = localStorage.getItem('ev_master_lifetime_trips_v34');
       if (stored) {
         try { return JSON.parse(stored); } catch(e) {}
       }
@@ -5242,12 +5333,12 @@
     }
 
     function saveLifetimeTrips(trips) {
-      localStorage.setItem('ev_master_lifetime_trips_v33', JSON.stringify(trips));
+      localStorage.setItem('ev_master_lifetime_trips_v34', JSON.stringify(trips));
     }
 
     function resetTripsToDefaults() {
       if (!confirm("Reset lifetime trips ledger to verified 3,492 km executive telemetry?")) return;
-      localStorage.removeItem('ev_master_lifetime_trips_v33');
+      localStorage.removeItem('ev_master_lifetime_trips_v34');
       renderLifetimeTripsLedger();
       alert("Ledger restored to verified 3,492 km executive telemetry baseline.");
     }
@@ -5745,6 +5836,7 @@
     const dateInput = document.getElementById('maint-input-date');
     if (dateInput) dateInput.value = todayStr;
 
+    hydrateAutoSavedState();
     renderLegsUI();
     calculateTrip();
     renderAeroTable();
@@ -5763,7 +5855,7 @@
     if (typeof auditTireMatrix === 'function') auditTireMatrix();
     if (typeof audit12vParasitic === 'function') audit12vParasitic();
     if (typeof auditV2L === 'function') auditV2L();
-    if (typeof auditCorridorTolls === 'function') auditCorridorTolls();
+    if (typeof auditAnnualPass === 'function') auditAnnualPass();
     if (typeof auditBackupStats === 'function') auditBackupStats();
   </script>
 </body>
