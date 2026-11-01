@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EV Master Command Suite v32 (Google Maps & Ultimate Fleet Edition)</title>
+  <title>EV Master Command Suite v33 (NHAI 200-Trip Pass & Zero-Toll Fleet Edition)</title>
   <!-- iOS PWA Standalone App Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -1634,32 +1634,66 @@
       </div>
     </div>
 
-<!-- MODULE 8: FASTAG HIGHWAY CORRIDOR & PLAZA-BY-PLAZA TOLL RECONCILIATION -->
+<!-- MODULE 8: NHAI 200-TRIP NATIONWIDE ANNUAL PASS & CORRIDOR CROSSINGS -->
       <div class="card" style="border-color: rgba(234, 179, 8, 0.4); margin-top: 0.85rem;">
         <div class="card-title" style="color:var(--solar); font-weight:700;">
-          <span>🛣️ Fastag Toll Corridor Matrix &amp; 24-Hour Return Discount Tracker</span>
-          <span class="badge" style="background:rgba(234, 179, 8, 0.18); color:var(--solar);" id="corridor-toll-badge">NH44/NH544 Corridor</span>
+          <span>🛣️ NHAI 200-Trip Nationwide Annual Pass &amp; Crossing Tracker</span>
+          <span class="badge" style="background:rgba(234, 179, 8, 0.18); color:var(--solar);" id="pass-pool-badge">127 Crossings Left</span>
         </div>
         <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
-          Audits plaza-by-plaza Fastag deductions across regional highway routes (Coimbatore &rarr; Salem &rarr; Hosur &rarr; Bengaluru) and applies automatic 50% concessions for return passages completed within 24 hours.
+          Zeroes out active out-of-pocket highway toll deductions (₹0.00 billed per trip) and tracks your 200-crossing annual pass balance across National Highway plazas (NH-544 / NH-44).
         </p>
 
         <div class="grid-inputs">
           <div class="form-group">
-            <label>Selected Highway Corridor</label>
-            <select id="toll-corridor-select" onchange="auditCorridorTolls()">
-              <option value="cbe_blr" selected>Coimbatore &rarr; Salem &rarr; Hosur &rarr; Bengaluru (7 Plazas)</option>
-              <option value="cbe_salem">Coimbatore &rarr; Erode &rarr; Salem (3 Plazas)</option>
-              <option value="cbe_mudumalai">Coimbatore &rarr; Mettupalayam &rarr; Mudumalai</option>
-              <option value="custom">Custom Toll Journey</option>
+            <label>Pass Status / Billing Mode</label>
+            <select id="toll-mode-select" onchange="auditAnnualPass()">
+              <option value="pass_200" selected>NHAI 200-Trip Pass Active (₹0 Out-of-Pocket)</option>
+              <option value="standard">Standard FASTag Deductions (Pay-Per-Plaza)</option>
             </select>
           </div>
           <div class="form-group">
-            <label>24-Hour Return Journey Concession</label>
-            <select id="toll-return-discount" onchange="auditCorridorTolls()">
-              <option value="yes" selected>Yes (Within 24 Hours - 50% Concession on Return)</option>
-              <option value="no">No (Standard One-Way Fare Each Direction)</option>
+            <label>Pass Activation Date</label>
+            <input type="date" id="pass-activation-date" value="2026-05-15" onchange="auditAnnualPass()" />
+          </div>
+          <div class="form-group">
+            <label>Crossings Used to Date</label>
+            <input type="number" id="pass-crossings-used" value="73" min="0" max="200" oninput="auditAnnualPass()" />
+          </div>
+          <div class="form-group">
+            <label>Prepaid Capital Cost</label>
+            <input type="text" value="₹3,075 (₹15.38 / crossing)" disabled style="color:var(--solar); font-weight:700;" />
+          </div>
+          <div class="form-group">
+            <label>Highway Corridor</label>
+            <select id="toll-corridor-select" onchange="auditAnnualPass()">
+              <option value="cbe_blr" selected>Coimbatore &rarr; Salem &rarr; Bengaluru (7 Plazas)</option>
+              <option value="cbe_salem">Coimbatore &rarr; Erode &rarr; Salem (3 Plazas)</option>
+              <option value="cbe_mudumalai">Coimbatore &rarr; Mettupalayam &rarr; Mudumalai</option>
             </select>
+          </div>
+        </div>
+
+        <div class="grid-results" style="margin-top:0.6rem;">
+          <div>
+            <div class="stat-sub">Crossings Remaining</div>
+            <div id="pass-rem-val" class="stat-val" style="color:var(--success); font-size:1.25rem;">127 / 200</div>
+            <div class="stat-sub" id="pass-days-left-sub">63.5% quota intact</div>
+          </div>
+          <div>
+            <div class="stat-sub">Daily Crossing Velocity</div>
+            <div id="pass-velocity-val" class="stat-val" style="color:var(--primary); font-size:1.25rem;">0.43 / day</div>
+            <div class="stat-sub" id="pass-burn-status">Optimal trajectory</div>
+          </div>
+          <div>
+            <div class="stat-sub">Standard Toll Value Used</div>
+            <div id="pass-cash-val" class="stat-val" style="color:var(--solar); font-size:1.25rem;">₹6,935</div>
+            <div class="stat-sub" id="pass-savings-sub">Net Saved: ₹3,860</div>
+          </div>
+          <div>
+            <div class="stat-sub">Active Trip Toll Fee</div>
+            <div id="pass-active-trip-fee" class="stat-val" style="color:var(--success); font-size:1.25rem;">₹0.00</div>
+            <div class="stat-sub">100% Pass Covered</div>
           </div>
         </div>
 
@@ -1669,28 +1703,23 @@
               <tr>
                 <th>Plaza Name</th>
                 <th>Highway</th>
-                <th>Single Journey (₹)</th>
-                <th>Return Fare (24h)</th>
-                <th>Active Deduction</th>
+                <th>Standard Cash Fare</th>
+                <th>Annual Pass Billing</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody id="toll-corridor-tbody"></tbody>
           </table>
         </div>
 
-        <div class="grid-results" style="margin-top:0.6rem;">
-          <div><div class="stat-sub">One-Way Toll Total</div><div id="toll-oneway-total" class="stat-val" style="color:var(--text);">₹650</div><div class="stat-sub">7 NHAI Toll Plazas</div></div>
-          <div><div class="stat-sub">Round-Trip Total (with Discount)</div><div id="toll-roundtrip-total" class="stat-val" style="color:var(--solar);">₹975</div><div class="stat-sub">Saved ₹325 via 24h return concession</div></div>
-          <div><div class="stat-sub">Fastag Wallet Liquidity Check</div><div id="toll-wallet-status" class="stat-val" style="color:var(--success); font-size:1.15rem;">Adequate</div><div class="stat-sub" id="toll-wallet-sub">₹1,200 balance covers round trip</div></div>
-        </div>
-
-        <div style="margin-top:0.6rem;">
-          <button class="btn btn-secondary" onclick="applyTollsToActiveTrip()">📥 Auto-Apply Tolls to Active Highway Planner</button>
+        <div style="margin-top:0.6rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button class="btn btn-secondary" style="flex:1;" onclick="applyAnnualPassToTrip()">📥 Apply Pass to Highway Planner (Sets Tolls to ₹0)</button>
+          <button class="btn btn-secondary" style="flex:1;" onclick="logTripCrossings()">+ Record Corridor Crossings to Counter</button>
         </div>
       </div>
     </div>
 
-        <!-- ======================================================== -->
+    <!-- ======================================================== -->
     <!-- TAB 4: SERVICE, MAINTENANCE, WHEEL CARE & 12V BATTERY    -->
     <!-- ======================================================== -->
     <div id="tab-maint" class="tab-pane">
@@ -2610,7 +2639,7 @@
         miscFee: 0, 
         cashbackMode: "5", 
         cashbackPct: 5.0, 
-        tollFee: 185, 
+        tollFee: 0, 
         planBDist: 32, // Next alternative charger distance (km)
         chargerKw: 60, 
         isFinal: false 
@@ -2632,7 +2661,7 @@
         miscFee: 0, 
         cashbackMode: "5", 
         cashbackPct: 5.0, 
-        tollFee: 210, 
+        tollFee: 0, 
         planBDist: 28,
         chargerKw: 60, 
         isFinal: false 
@@ -2654,7 +2683,7 @@
         miscFee: 0, 
         cashbackMode: "0", 
         cashbackPct: 0.0, 
-        tollFee: 165, 
+        tollFee: 0, 
         planBDist: 0,
         chargerKw: 0, 
         isFinal: true 
@@ -2796,9 +2825,9 @@
       toggleTariffMode();
 
       legsData = [
-        { id: 1, name: "Leg 1: Departure to Stop 1 Charger", startOdo: 5400, endOdo: 5550, dist: 150, whkm: 152, actualSoc: 40, plugInSoc: 40, plugOutSoc: 90, chargeMins: 35, cpoName: "Highway 60 kW DC Charger", dcRate: 20.00, gstMode: "exclusive", miscFee: 0, cashbackMode: "5", cashbackPct: 5.0, tollFee: 185, planBDist: 32, chargerKw: 60, isFinal: false },
-        { id: 2, name: "Leg 2: Stop 1 to Stop 2 / Return", startOdo: 5550, endOdo: 5720, dist: 170, whkm: 130, actualSoc: null, plugInSoc: null, plugOutSoc: 80, chargeMins: 30, cpoName: "Public DC Fast Charger #2", dcRate: 21.00, gstMode: "exclusive", miscFee: 0, cashbackMode: "5", cashbackPct: 5.0, tollFee: 210, planBDist: 28, chargerKw: 60, isFinal: false },
-        { id: 3, name: "Leg 3: Final Leg to Home", startOdo: 5720, endOdo: 5900, dist: 180, whkm: 125, actualSoc: null, plugInSoc: null, plugOutSoc: 100, chargeMins: 0, cpoName: "", dcRate: 0, gstMode: "inclusive", miscFee: 0, cashbackMode: "0", cashbackPct: 0.0, tollFee: 165, planBDist: 0, chargerKw: 0, isFinal: true }
+        { id: 1, name: "Leg 1: Departure to Stop 1 Charger", startOdo: 5400, endOdo: 5550, dist: 150, whkm: 152, actualSoc: 40, plugInSoc: 40, plugOutSoc: 90, chargeMins: 35, cpoName: "Highway 60 kW DC Charger", dcRate: 20.00, gstMode: "exclusive", miscFee: 0, cashbackMode: "5", cashbackPct: 5.0, tollFee: 0, planBDist: 32, chargerKw: 60, isFinal: false },
+        { id: 2, name: "Leg 2: Stop 1 to Stop 2 / Return", startOdo: 5550, endOdo: 5720, dist: 170, whkm: 130, actualSoc: null, plugInSoc: null, plugOutSoc: 80, chargeMins: 30, cpoName: "Public DC Fast Charger #2", dcRate: 21.00, gstMode: "exclusive", miscFee: 0, cashbackMode: "5", cashbackPct: 5.0, tollFee: 0, planBDist: 28, chargerKw: 60, isFinal: false },
+        { id: 3, name: "Leg 3: Final Leg to Home", startOdo: 5720, endOdo: 5900, dist: 180, whkm: 125, actualSoc: null, plugInSoc: null, plugOutSoc: 100, chargeMins: 0, cpoName: "", dcRate: 0, gstMode: "inclusive", miscFee: 0, cashbackMode: "0", cashbackPct: 0.0, tollFee: 0, planBDist: 0, chargerKw: 0, isFinal: true }
       ];
       renderLegsUI();
       calculateTrip();
@@ -2818,7 +2847,7 @@
       oldFinal.miscFee = 0;
       oldFinal.cashbackMode = "5";
       oldFinal.cashbackPct = 5.0;
-      oldFinal.tollFee = 150;
+      oldFinal.tollFee = 0;
       oldFinal.planBDist = 25;
       oldFinal.cpoName = `Highway Charger #${currentCount}`;
       oldFinal.chargerKw = 60;
@@ -2841,7 +2870,7 @@
         miscFee: 0,
         cashbackMode: "0",
         cashbackPct: 0.0,
-        tollFee: 120,
+        tollFee: 0,
         planBDist: 0,
         chargerKw: 0,
         isFinal: true
@@ -4621,62 +4650,103 @@
       ]
     };
 
-    function auditCorridorTolls() {
-      const corridor = document.getElementById('toll-corridor-select').value;
-      const discount = document.getElementById('toll-return-discount').value === 'yes';
-      const plazas = tollPlazasData[corridor] || tollPlazasData.cbe_blr;
+    function auditAnnualPass() {
+      const isPassActive = document.getElementById('toll-mode-select')?.value === 'pass_200';
+      const used = parseInt(document.getElementById('pass-crossings-used')?.value || 73);
+      const actDateStr = document.getElementById('pass-activation-date')?.value || '2026-05-15';
+      
+      const actDate = new Date(actDateStr);
+      const today = new Date('2026-11-01');
+      const daysElapsed = Math.max(1, Math.round((today - actDate) / (1000 * 60 * 60 * 24)));
+      const daysLeft = Math.max(0, 365 - daysElapsed);
+      const remaining = Math.max(0, 200 - used);
 
-      let oneWayTotal = 0;
-      let roundTripTotal = 0;
+      const velocity = (used / daysElapsed);
+      const projExhaustDays = velocity > 0 ? Math.round(200 / velocity) : 365;
+      const exhaustDate = new Date(actDate.getTime() + (projExhaustDays * 24 * 60 * 60 * 1000));
 
-      const tbody = document.getElementById('toll-corridor-tbody');
-      if (tbody) {
-        tbody.innerHTML = plazas.map(p => {
-          oneWayTotal += p.fee;
-          const retFee = discount ? Math.round(p.fee * 1.5) : (p.fee * 2);
-          roundTripTotal += retFee;
-          return `
-            <tr>
-              <td><strong>${p.name}</strong></td>
-              <td style="color:var(--text-muted); font-size:0.75rem;">${p.highway}</td>
-              <td style="font-weight:700;">₹${p.fee}</td>
-              <td style="color:var(--solar); font-weight:700;">₹${retFee}</td>
-              <td><span class="badge badge-safe">Active</span></td>
-            </tr>
-          `;
-        }).join('');
+      const remElem = document.getElementById('pass-rem-val');
+      if (remElem) remElem.innerText = `${remaining} / 200`;
+
+      const daysLeftElem = document.getElementById('pass-days-left-sub');
+      if (daysLeftElem) daysLeftElem.innerText = `${daysLeft} Days remaining`;
+
+      const velElem = document.getElementById('pass-velocity-val');
+      if (velElem) velElem.innerText = `${velocity.toFixed(2)} / day`;
+
+      const exhaustElem = document.getElementById('pass-exhaust-date');
+      if (exhaustElem) exhaustElem.innerText = exhaustDate.toISOString().slice(0, 10);
+
+      const cashVal = used * 95;
+      const amortized = used * 15.38;
+      const netSaved = Math.max(0, cashVal - amortized);
+
+      const cashValElem = document.getElementById('pass-cash-val');
+      if (cashValElem) cashValElem.innerText = `₹${cashVal.toLocaleString('en-IN')}`;
+
+      const savingsSub = document.getElementById('pass-savings-sub');
+      if (savingsSub) savingsSub.innerText = `Net Saved: ₹${Math.round(netSaved).toLocaleString('en-IN')}`;
+
+      const badge = document.getElementById('pass-pool-badge');
+      if (badge) {
+        badge.innerText = `${remaining} Crossings Left (${used}/200 Used)`;
+        badge.className = remaining <= 20 ? "badge badge-warn" : "badge badge-safe";
       }
 
-      document.getElementById('toll-oneway-total').innerText = `₹${oneWayTotal}`;
-      document.getElementById('toll-roundtrip-total').innerText = `₹${roundTripTotal}`;
+      const activeTripFeeElem = document.getElementById('pass-active-trip-fee');
+      if (activeTripFeeElem) activeTripFeeElem.innerText = isPassActive ? "₹0.00" : "Billed";
 
-      const fastagBal = parseFloat(document.getElementById('wal-fastag') ? document.getElementById('wal-fastag').value : 1200) || 1200;
-      const statusElem = document.getElementById('toll-wallet-status');
-      const subElem = document.getElementById('toll-wallet-sub');
+      // Render Corridor Plazas
+      const corridor = document.getElementById('toll-corridor-select')?.value || 'cbe_blr';
+      const plazas = tollPlazasData[corridor] || tollPlazasData.cbe_blr;
+      const tbody = document.getElementById('toll-corridor-tbody');
+      
+      if (tbody) {
+        tbody.innerHTML = plazas.map(p => `
+          <tr>
+            <td><strong>${p.name}</strong></td>
+            <td style="color:var(--text-muted); font-size:0.75rem;">${p.highway}</td>
+            <td style="color:var(--text-muted);">₹${p.fee}</td>
+            <td style="color:var(--success); font-weight:700;">${isPassActive ? '₹0.00 (1 Crossing)' : '₹' + p.fee}</td>
+            <td><span class="badge ${isPassActive ? 'badge-safe' : 'badge-warn'}">${isPassActive ? 'Pass Covered' : 'Cash Billed'}</span></td>
+          </tr>
+        `).join('');
+      }
+    }
 
-      if (fastagBal >= roundTripTotal) {
-        statusElem.innerText = "Adequate";
-        statusElem.style.color = "var(--success)";
-        subElem.innerText = `₹${fastagBal.toLocaleString()} balance covers round trip (₹${roundTripTotal})`;
-      } else {
-        statusElem.innerText = "Recharge Due";
-        statusElem.style.color = "var(--warning)";
-        subElem.innerText = `₹${fastagBal} balance is below round trip toll (₹${roundTripTotal})`;
+    function auditCorridorTolls() {
+      auditAnnualPass();
+    }
+
+    function applyAnnualPassToTrip() {
+      const isPassActive = document.getElementById('toll-mode-select')?.value === 'pass_200';
+      if (legsData.length > 0) {
+        legsData.forEach(leg => {
+          leg.tollFee = isPassActive ? 0 : 95;
+        });
+        renderLegsUI();
+        calculateTrip();
+        alert(isPassActive 
+          ? "✅ NHAI Annual Pass Active: Highway trip toll deductions set to ₹0.00!" 
+          : "Standard plaza toll fees restored.");
       }
     }
 
     function applyTollsToActiveTrip() {
-      const corridor = document.getElementById('toll-corridor-select').value;
-      const plazas = tollPlazasData[corridor] || tollPlazasData.cbe_blr;
-      let total = 0;
-      plazas.forEach(p => total += p.fee);
+      applyAnnualPassToTrip();
+    }
 
-      if (legsData.length > 0) {
-        const perLeg = Math.round(total / legsData.length);
-        legsData.forEach(l => l.tollFee = perLeg);
-        renderLegsUI();
-        calculateTrip();
-        alert(`✅ Fastag tolls (₹${total}) successfully applied across active highway trip legs!`);
+    function logTripCrossings() {
+      const corridor = document.getElementById('toll-corridor-select')?.value || 'cbe_blr';
+      const plazas = tollPlazasData[corridor] || tollPlazasData.cbe_blr;
+      const count = plazas.length;
+
+      const usedInput = document.getElementById('pass-crossings-used');
+      if (usedInput) {
+        const cur = parseInt(usedInput.value || 0);
+        usedInput.value = Math.min(200, cur + count);
+        auditAnnualPass();
+        alert(`✅ Logged ${count} corridor crossings. Total used: ${Math.min(200, cur + count)} / 200.`);
       }
     }
 
@@ -4719,7 +4789,7 @@
       const trips = getLifetimeTrips();
       const maint = getMaintLogs();
       const soh = getLifetimeLogs();
-      const crossings = parseInt(document.getElementById('pass-crossings-used')?.value || 18);
+      const crossings = parseInt(document.getElementById('pass-crossings-used')?.value || 73);
 
       const tElem = document.getElementById('backup-trips-count');
       if (tElem) tElem.innerText = `${trips.length} Trips`;
@@ -4743,7 +4813,7 @@
         sohMilestones: getLifetimeLogs(),
         tripHistory: JSON.parse(localStorage.getItem('ev_dynamic_trips') || '[]'),
         annualPass: {
-          crossingsUsed: parseInt(document.getElementById('pass-crossings-used')?.value || 18),
+          crossingsUsed: parseInt(document.getElementById('pass-crossings-used')?.value || 73),
           annualFee: parseFloat(document.getElementById('tco-pass-fee')?.value || 3075),
           mode: document.getElementById('toll-mode-select')?.value || 'pass_200'
         },
@@ -5164,7 +5234,7 @@
 ];
 
     function getLifetimeTrips() {
-      const stored = localStorage.getItem('ev_master_lifetime_trips_v32');
+      const stored = localStorage.getItem('ev_master_lifetime_trips_v33');
       if (stored) {
         try { return JSON.parse(stored); } catch(e) {}
       }
@@ -5172,12 +5242,12 @@
     }
 
     function saveLifetimeTrips(trips) {
-      localStorage.setItem('ev_master_lifetime_trips_v32', JSON.stringify(trips));
+      localStorage.setItem('ev_master_lifetime_trips_v33', JSON.stringify(trips));
     }
 
     function resetTripsToDefaults() {
       if (!confirm("Reset lifetime trips ledger to verified 3,492 km executive telemetry?")) return;
-      localStorage.removeItem('ev_master_lifetime_trips_v32');
+      localStorage.removeItem('ev_master_lifetime_trips_v33');
       renderLifetimeTripsLedger();
       alert("Ledger restored to verified 3,492 km executive telemetry baseline.");
     }
