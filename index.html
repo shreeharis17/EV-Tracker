@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EV Master Command Suite</title>
+  <title>EV Master Command Suite v32 (Google Maps & Ultimate Fleet Edition)</title>
   <!-- iOS PWA Standalone App Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -423,10 +423,11 @@
     <!-- TOP TAB SWITCHER -->
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchMainTab('tab-highway')">🛣️ Highway & Route</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-trips')">🗺️ Lifetime Trips & Km</button>
       <button class="tab-btn" onclick="switchMainTab('tab-hotel')">🏨 Destination & Hotel AC</button>
       <button class="tab-btn" onclick="switchMainTab('tab-wallets')">💳 CPO Wallets & RFID</button>
       <button class="tab-btn" onclick="switchMainTab('tab-maint')">🔧 Wheel Care & 12V</button>
-      <button class="tab-btn" onclick="switchMainTab('tab-battery')">🔋 SOH & BMS Firmware</button>
+      <button class="tab-btn" onclick="switchMainTab('tab-battery')">🔋 SOH & Lifetime Range</button>
       <button class="tab-btn" onclick="switchMainTab('tab-solar')">☀️ Home AC, Solar & Grid</button>
       <button class="tab-btn" onclick="switchMainTab('tab-aero')">📈 Speed, HVAC & Aero</button>
       <button class="tab-btn" onclick="switchMainTab('tab-tco')">📊 TCO, Vault & Emergency</button>
@@ -459,7 +460,7 @@
           </div>
           <div class="form-group">
             <label>Trip Start Odometer (km)</label>
-            <input type="number" id="cfg-start-odo" value="5400" step="10" oninput="updateInitialOdo()" />
+            <input type="number" id="cfg-start-odo" value="5320" step="10" oninput="updateInitialOdo()" />
           </div>
           <div class="form-group">
             <label>Home AC Wall Loss Factor</label>
@@ -612,7 +613,230 @@
         </div>
       </div>
 
+      <!-- ================================================================= -->
+      <!-- TARGET DISTANCE CALCULATOR & 3-TIER CHARGER CONTINGENCY RADAR    -->
+      <!-- ================================================================= -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.5); background: linear-gradient(180deg, #101a2e 0%, #0d1527 100%);">
+        <div class="card-title" style="color:var(--primary); font-weight:700;">
+          <span>🎯 Target Arrival Battery Calculator & 3-Tier Contingency Radar</span>
+          <span class="badge badge-safe" id="target-quick-badge">Forecaster Active</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+          Input any target distance to forecast exact arrival battery SoC %. Simultaneously track your <strong>Primary</strong> preferred charger along with <strong>Secondary (Plan-B)</strong> and <strong>Tertiary (Plan-C)</strong> backup waypoints to eliminate highway charging anxiety.
+        </p>
+
+        <!-- SECTION A: QUICK EN-ROUTE DISTANCE & ARRIVAL SOC CALCULATOR -->
+        <div style="background: #060a12; border: 1px solid #1a2538; padding: 0.85rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>⚡ En-Route Quick Calculator (Current Odo + Current % + Further Km)</span>
+            <span class="plug-metric-chip" id="quick-calc-summary-chip">Forecasting...</span>
+          </div>
+
+          <div class="grid-inputs">
+            <div class="form-group">
+              <label>1. Current Odometer (km)</label>
+              <input type="number" id="quick-curr-odo" value="5320" step="10" oninput="syncQuickOdo('curr')" />
+            </div>
+            <div class="form-group">
+              <label>2. Current Battery SoC (%)</label>
+              <input type="number" id="quick-start-soc" value="85" min="5" max="100" oninput="runContingencyRadar()" />
+            </div>
+            <div class="form-group">
+              <label>3. Further Distance to Travel (km)</label>
+              <input type="number" id="quick-target-dist" value="120" step="5" oninput="syncQuickOdo('dist')" />
+            </div>
+            <div class="form-group">
+              <label>Destination Target Odo (km)</label>
+              <input type="number" id="quick-dest-odo" value="5440" step="10" oninput="syncQuickOdo('dest')" />
+            </div>
+          </div>
+
+          <div class="grid-inputs" style="margin-top:0.4rem;">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label>4. Cruising Pacing (Wh/km)</label>
+                <span id="quick-pacing-lbl" style="font-size:0.72rem; color:var(--primary); font-weight:700;">85 km/h Sweet Spot (125 Wh/km)</span>
+              </div>
+              <input type="number" id="quick-pacing-whkm" value="125" step="1" oninput="runContingencyRadar()" />
+              <div class="preset-group" style="margin-top:0.25rem;">
+                <span class="preset-chip" onclick="setQuickWhkm(115, '75 km/h Eco')">75 km/h (115)</span>
+                <span class="preset-chip active" id="chip-85" onclick="setQuickWhkm(125, '85 km/h Sweet Spot')">85 km/h (125)</span>
+                <span class="preset-chip" onclick="setQuickWhkm(132, '90 km/h Active')">90 km/h (132)</span>
+                <span class="preset-chip" onclick="setQuickWhkm(147, 'Lifetime 147 Wh/km')">147 Wh (Lifetime)</span>
+                <span class="preset-chip" onclick="setQuickWhkm(180, 'Urban Crawl AC')">180 Wh (City AC)</span>
+                <span class="preset-chip" onclick="setQuickWhkm(203, 'Heavy Rain Drag')">203 Wh (Rain Drag)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-inputs" style="margin-top:0.4rem;">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label>5. Destination Elevation &amp; Hill-Climb Delta (m)</label>
+                <span id="quick-elev-lbl" style="font-size:0.72rem; color:var(--solar); font-weight:700;">Flat Plain / Highway (+0 m)</span>
+              </div>
+              <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.5rem; margin-top:0.2rem;">
+                <select id="quick-elev-preset" onchange="setQuickElevPreset(this.value)">
+                  <option value="0" selected>Plain / Flat Highway (+0 m | 0 kWh)</option>
+                  <option value="510">Coimbatore &rarr; Bengaluru (+510 m Rolling | +2.8 kWh)</option>
+                  <option value="1440">Mettupalayam &rarr; Coonoor (+1,440 m Ghat | +7.9 kWh)</option>
+                  <option value="1830">Mettupalayam &rarr; Ooty (+1,830 m Ghat Climb | +10.1 kWh)</option>
+                  <option value="780">Pollachi &rarr; Valparai (+780 m 40 Hairpins | +4.3 kWh)</option>
+                  <option value="1720">Batlagundu &rarr; Kodaikanal (+1,720 m Ghat | +9.5 kWh)</option>
+                  <option value="-1830">Ooty &rarr; Mettupalayam (-1,830 m Descent Regen | -6.4 kWh)</option>
+                  <option value="-510">Bengaluru &rarr; Coimbatore (-510 m Rolling Descent | -1.8 kWh)</option>
+                  <option value="custom">Custom Elevation Difference (m)...</option>
+                </select>
+                <input type="number" id="quick-elev-m" value="0" step="50" placeholder="&plusmn; Meters" oninput="runContingencyRadar()" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Results Banner -->
+          <div class="hero-range-banner" style="margin-top:0.75rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(56, 189, 248, 0.12) 100%); border-color: rgba(34, 197, 94, 0.35);">
+            <div>
+              <div class="hero-label">Predicted Arrival SoC</div>
+              <div id="quick-res-arrival-soc" class="hero-val" style="color:var(--success); font-size:1.65rem;">--%</div>
+              <div class="stat-sub" id="quick-res-soc-drop">SoC Drop: --%</div>
+            </div>
+            <div>
+              <div class="hero-label">Arrival Odometer</div>
+              <div id="quick-res-arrival-odo" class="hero-val" style="color:var(--primary); font-size:1.65rem;">-- km</div>
+              <div class="stat-sub" id="quick-res-energy-sub">Energy: -- kWh</div>
+            </div>
+            <div>
+              <div class="hero-label">Safe Reserve Remaining</div>
+              <div id="quick-res-safe-km" class="hero-val" style="color:#f8fafc; font-size:1.65rem;">-- km</div>
+              <div class="stat-sub">(Distance remaining above 15% safety floor)</div>
+            </div>
+            <div>
+              <div class="hero-label">En-Route Buffer Status</div>
+              <div id="quick-res-badge-wrap" style="margin-top:0.35rem;">
+                <span id="quick-res-status-badge" class="badge badge-safe" style="font-size:0.85rem; padding:0.3rem 0.6rem;">Optimal Buffer</span>
+              </div>
+              <div class="stat-sub" id="quick-res-max-speed-sub">Safe up to -- km/h</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION B: 3-TIER HIGHWAY CHARGER CONTINGENCY RADAR -->
+        <div style="background: #060a12; border: 1px solid #1a2538; padding: 0.85rem; border-radius: 0.5rem;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: var(--solar); text-transform: uppercase; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>🛡️ 3-Tier Highway Charger Contingency Radar (Primary $	o$ Secondary $	o$ Tertiary)</span>
+            <span class="badge badge-warn" id="contingency-buffer-badge">Multi-Stop Audited</span>
+          </div>
+          <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Enter your preferred charger and 2 downstream backups. The radar continuously audits your arrival SoC at all three locations across multiple speed profiles to guarantee you never get stranded if a charger is offline, iced, or queued.
+          </p>
+
+          <div class="grid-inputs">
+            <!-- Primary Charger Inputs -->
+            <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.25); padding: 0.65rem; border-radius: 0.4rem;">
+              <div style="font-size:0.75rem; font-weight:700; color:var(--primary); margin-bottom:0.35rem;">
+                1️⃣ Primary Preferred Charger
+              </div>
+              <div class="form-group">
+                <label>Station / CPO Name</label>
+                <input type="text" id="radar-p-name" value="Zeon 60 kW Fast Charger" />
+              </div>
+              <div class="form-group">
+                <label>Distance from Start (km)</label>
+                <input type="number" id="radar-p-dist" value="155" step="5" oninput="runContingencyRadar()" />
+              </div>
+              <div style="margin-top:0.4rem; padding-top:0.35rem; border-top:1px dashed #1e293b; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.72rem; color:var(--text-muted);">Arrival SoC:</span>
+                <strong id="radar-p-soc" style="color:var(--success); font-size:1.05rem;">44.0%</strong>
+              </div>
+              <div id="radar-p-badge" style="margin-top:0.25rem;"></div>
+            </div>
+
+            <!-- Secondary Fallback Inputs -->
+            <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.65rem; border-radius: 0.4rem;">
+              <div style="font-size:0.75rem; font-weight:700; color:var(--warning); margin-bottom:0.35rem;">
+                2️⃣ Secondary Backup (Plan-B)
+              </div>
+              <div class="form-group">
+                <label>Station / CPO Name</label>
+                <input type="text" id="radar-s-name" value="Tata Power 50 kW (Bypass)" />
+              </div>
+              <div class="form-group">
+                <label>Distance from Start (km)</label>
+                <input type="number" id="radar-s-dist" value="185" step="5" oninput="runContingencyRadar()" />
+              </div>
+              <div style="margin-top:0.4rem; padding-top:0.35rem; border-top:1px dashed #1e293b; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.72rem; color:var(--text-muted);">Arrival SoC (+30km):</span>
+                <strong id="radar-s-soc" style="color:var(--primary); font-size:1.05rem;">34.1%</strong>
+              </div>
+              <div id="radar-s-badge" style="margin-top:0.25rem;"></div>
+            </div>
+
+            <!-- Tertiary Contingency Inputs -->
+            <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.25); padding: 0.65rem; border-radius: 0.4rem;">
+              <div style="font-size:0.75rem; font-weight:700; color:var(--danger); margin-bottom:0.35rem;">
+                3️⃣ Tertiary Fallback (Plan-C)
+              </div>
+              <div class="form-group">
+                <label>Station / CPO Name</label>
+                <input type="text" id="radar-t-name" value="Jio-bp 60 kW / Slow 15A" />
+              </div>
+              <div class="form-group">
+                <label>Distance from Start (km)</label>
+                <input type="number" id="radar-t-dist" value="215" step="5" oninput="runContingencyRadar()" />
+              </div>
+              <div style="margin-top:0.4rem; padding-top:0.35rem; border-top:1px dashed #1e293b; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.72rem; color:var(--text-muted);">Arrival SoC (+60km):</span>
+                <strong id="radar-t-soc" style="color:var(--warning); font-size:1.05rem;">24.3%</strong>
+              </div>
+              <div id="radar-t-badge" style="margin-top:0.25rem;"></div>
+            </div>
+          </div>
+
+          <!-- Contingency Comparison Matrix by Speed Table -->
+          <div style="overflow-x: auto; margin-top: 0.85rem;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Charger Waypoint</th>
+                  <th>Total Dist</th>
+                  <th>Diversion</th>
+                  <th>75 km/h (115 Wh)</th>
+                  <th>85 km/h (125 Wh)</th>
+                  <th>90 km/h (132 Wh)</th>
+                  <th>100 km/h (152 Wh)</th>
+                  <th>Contingency Verdict</th>
+                </tr>
+              </thead>
+              <tbody id="radar-matrix-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Dynamic Driver Guidance Alert -->
+          <div id="radar-guidance-box" style="margin-top: 0.75rem; padding: 0.65rem 0.85rem; border-radius: 0.4rem; font-size: 0.78rem; background: #080d18; border: 1px solid #1e293b;"></div>
+        </div>
+      </div>
+
+
       <!-- DYNAMIC LEGS CONTAINER -->
+            <!-- GOOGLE MAPS LIVE CORRIDOR & NAVIGATION DISPATCHER -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--primary); font-weight:700;">
+          <span>🗺️ Google Maps Live Route View &amp; Navigation Dispatcher</span>
+          <button class="btn btn-secondary" style="width:auto; padding:0.25rem 0.65rem;" onclick="launchNativeGoogleMaps()">
+            🚀 Open Turn-by-Turn in Google Maps App
+          </button>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Embeds live highway corridor geometry and compiles all en-route fast-charging waypoints into an automated Google Maps Directions URL for turn-by-turn phone or dashboard navigation.
+        </p>
+        <div style="position: relative; width: 100%; height: 260px; border-radius: 0.4rem; overflow: hidden; border:1px solid #1a2538; margin-bottom:0.6rem;">
+          <iframe id="gmaps-embed-frame" width="100%" height="100%" style="border:0;" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Coimbatore+to+Bengaluru&output=embed"></iframe>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem; font-size:0.78rem;">
+          <span style="color:var(--text-muted);">Active Corridor: <strong style="color:var(--text);">Coimbatore &rarr; Salem &rarr; Bengaluru</strong></span>
+          <span class="badge badge-safe">Zero-API Native Route Linking</span>
+        </div>
+      </div>
+
       <div id="legs-wrapper"></div>
 
       <!-- BUTTON TO ADD MORE STOPS -->
@@ -675,15 +899,593 @@
           </div>
         </div>
 
-        <div style="margin-top: 0.85rem; display: flex; gap: 0.5rem;">
-          <button class="btn" onclick="saveToHistory()">Save Trip to History</button>
-          <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+        <div style="margin-top: 0.85rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn" style="flex: 2; min-width: 200px;" onclick="saveActiveRouteToLifetimeLedger()">💾 Save Trip to Lifetime Trips Ledger</button>
+          <button class="btn btn-secondary" style="flex: 1; min-width: 150px;" onclick="switchMainTab('tab-trips')">🗺️ View Lifetime Ledger</button>
+          <button class="btn btn-secondary" onclick="exportCSV()">Export Trip CSV</button>
         </div>
       </div>
     </div>
 
     <!-- ======================================================== -->
-    <!-- TAB 2: DESTINATION & HOTEL OVERNIGHT AC CHARGING HUB     -->
+    <!-- TAB 2: LIFETIME TRIPS & CUMULATIVE KILOMETRES LEDGER    -->
+    <!-- ======================================================== -->
+    <div id="tab-trips" class="tab-pane">
+      
+      <!-- TOP CUMULATIVE LIFETIME RANGE & DISTANCE BANNER -->
+      <div class="card" style="border-color: var(--primary);">
+        <div class="card-title" style="color:var(--primary); font-weight:700;">
+          <span>🗺️ Lifetime Kilometers & Multi-Trip Aggregator</span>
+          <span class="badge badge-safe" id="ledger-trips-count-badge">0 Trips Logged</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Track total cumulative kilometers across every journey. Every completed trip records start/arrival odometers, distance, Wh/km, energy spend, driver wages, and Fastag tolls to maintain an accurate running lifetime mileage and cost ledger.
+        </p>
+
+        <div class="hero-range-banner" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(34, 197, 94, 0.15) 100%); border-color: var(--primary); margin-top:0; margin-bottom:0.75rem;">
+          <div>
+            <div class="hero-label">Lifetime Real 100% Range</div>
+            <div id="ledger-lifetime-100-range" class="hero-val" style="color:var(--success); font-size:1.65rem;">-- km</div>
+            <div class="stat-sub" id="ledger-lifetime-1pct-sub">-- km per 1% battery</div>
+          </div>
+          <div>
+            <div class="hero-label">Total Lifetime Kilometers</div>
+            <div id="ledger-total-km" class="hero-val" style="color:var(--primary); font-size:1.65rem;">0 km</div>
+            <div class="stat-sub" id="ledger-odo-span">Odometer: 0 → 0 km</div>
+          </div>
+          <div>
+            <div class="hero-label">Lifetime Energy Efficiency</div>
+            <div id="ledger-blended-whkm" class="hero-val" style="color:#f8fafc; font-size:1.65rem;">-- Wh/km</div>
+            <div class="stat-sub" id="ledger-total-energy">-- kWh total throughput</div>
+          </div>
+          <div>
+            <div class="hero-label">Lifetime Blended Cost / km</div>
+            <div id="ledger-blended-rate" class="hero-val" style="color:var(--success); font-size:1.65rem;">₹0.00 / km</div>
+            <div class="stat-sub">(Energy + Driver + Tolls)</div>
+          </div>
+          <div>
+            <div class="hero-label">Lifetime Petrol Savings</div>
+            <div id="ledger-total-savings" class="hero-val" style="color:var(--solar); font-size:1.65rem;">₹0</div>
+            <div class="stat-sub">vs 14 km/L petrol car</div>
+          </div>
+        </div>
+
+        <div class="grid-results" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+          <div>
+            <div class="stat-sub">Total All-Inc Spend</div>
+            <div id="ledger-total-cost" class="stat-val" style="color:var(--success);">₹0</div>
+            <div class="stat-sub">Energy + Driver + Tolls</div>
+          </div>
+          <div>
+            <div class="stat-sub">Pure Energy Spend</div>
+            <div id="ledger-energy-cost" class="stat-val">₹0</div>
+            <div class="stat-sub" id="ledger-energy-rate-sub">₹0.00 / km pure power</div>
+          </div>
+          <div>
+            <div class="stat-sub">Total Driver Wages</div>
+            <div id="ledger-driver-cost" class="stat-val" style="color:var(--driver);">₹0</div>
+            <div class="stat-sub">Chauffeur fees & batta</div>
+          </div>
+          <div>
+            <div class="stat-sub">Total Fastag Tolls</div>
+            <div id="ledger-tolls-cost" class="stat-val" style="color:var(--solar);">₹0</div>
+            <div class="stat-sub">Highway toll plazas</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIFETIME CHARGING SPEED & HOURS ANALYTICS CARD -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--primary); font-weight:700;">
+          <span>⏱️ Lifetime Charging Speeds & Duration Analytics</span>
+          <span class="badge badge-wallet" id="lifetime-speeds-badge">Home AC: 3.3 kW | DC: 35.2 kW</span>
+        </div>
+
+        <div class="hero-range-banner" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%); border-color: rgba(56, 189, 248, 0.35); margin-top:0; margin-bottom:0.75rem;">
+          <div>
+            <div class="hero-label">Lifetime Avg Home AC Speed</div>
+            <div id="life-avg-ac-speed" class="hero-val" style="color:var(--success); font-size:1.55rem;">3.3 kW</div>
+            <div class="stat-sub" id="life-total-ac-hours">0.0 total AC hours</div>
+          </div>
+          <div>
+            <div class="hero-label">Lifetime Avg Public DC Speed</div>
+            <div id="life-avg-dc-speed" class="hero-val" style="color:var(--primary); font-size:1.55rem;">-- kW</div>
+            <div class="stat-sub" id="life-total-dc-hours">0.0 total DC hours</div>
+          </div>
+          <div>
+            <div class="hero-label">Total Time Plugged In</div>
+            <div id="life-total-plug-time" class="hero-val" style="color:#f8fafc; font-size:1.55rem;">0.0 hrs</div>
+            <div class="stat-sub">Home AC + Public DC sessions</div>
+          </div>
+          <div>
+            <div class="hero-label">Max DC Speed Recorded</div>
+            <div id="life-max-dc-speed" class="hero-val" style="color:var(--warning); font-size:1.55rem;">48.0 kW</div>
+            <div class="stat-sub">Peak LFP acceptance curve</div>
+          </div>
+        </div>
+
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          *Note: Home AC charging speed is calculated as $	ext{Grid Units} \div 	ext{Active Draw Hours}$, while Public DC charging speed is averaged across each session's actual elapsed minutes and LFP taper curves.
+        </div>
+      </div>
+
+      <!-- LIFETIME HOME AC VS PUBLIC DC CHARGING SPLIT CARD -->
+      <div class="card" style="border-color: rgba(34, 197, 94, 0.4);">
+        <div class="card-title" style="color:var(--success); font-weight:700;">
+          <span>⚡ Lifetime Charging Breakdown: Home AC vs. Public DC</span>
+          <span class="badge badge-safe" id="split-ratio-badge">Home: 58% | DC: 42%</span>
+        </div>
+
+        <div class="grid-results" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); margin-top:0; margin-bottom:0.75rem;">
+          <div>
+            <div class="stat-sub">Home AC Lifetime Units</div>
+            <div id="stat-home-units" class="stat-val" style="color:var(--success);">0 u</div>
+            <div class="stat-sub" id="stat-home-pack-kwh">0 kWh to battery</div>
+          </div>
+          <div>
+            <div class="stat-sub">Home AC Effective Cost</div>
+            <div id="stat-home-cost" class="stat-val" style="color:var(--success);">₹0</div>
+            <div class="stat-sub" id="stat-home-rate-sub">₹0.00/u | ₹0.00/km</div>
+          </div>
+          <div>
+            <div class="stat-sub">Public DC Lifetime Units</div>
+            <div id="stat-dc-units" class="stat-val" style="color:var(--primary);">0 kWh</div>
+            <div class="stat-sub">Dispenser billed units</div>
+          </div>
+          <div>
+            <div class="stat-sub">Public DC Net Cost</div>
+            <div id="stat-dc-cost" class="stat-val" style="color:var(--primary);">₹0</div>
+            <div class="stat-sub" id="stat-dc-rate-sub">₹0.00/kWh | ₹0.00/km</div>
+          </div>
+          <div>
+            <div class="stat-sub">Combined Units Consumed</div>
+            <div id="stat-total-units" class="stat-val" style="color:#f8fafc;">0 u</div>
+            <div class="stat-sub" id="stat-blended-rate-sub">Avg ₹0.00/u | ₹0.00/km</div>
+          </div>
+        </div>
+
+        <!-- SIDE-BY-SIDE COMPARATIVE LEDGER TABLE -->
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Charging Stream</th>
+                <th>Total Units Consumed</th>
+                <th>Battery Pack Energy</th>
+                <th>Total Cost (₹)</th>
+                <th>Cost / Unit (₹/kWh)</th>
+                <th>Cost / km</th>
+                <th>Distance Covered</th>
+                <th>Share %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong style="color:var(--success);">🏠 Home AC Slow Charging</strong></td>
+                <td><strong id="tbl-home-grid-units" style="color:var(--success);">0 u</strong> (at meter)</td>
+                <td id="tbl-home-pack-kwh">0 kWh</td>
+                <td id="tbl-home-total-cost" style="font-weight:700; color:var(--success);">₹0</td>
+                <td id="tbl-home-cost-kwh" style="font-weight:700;">₹9.55 / kWh</td>
+                <td id="tbl-home-cost-km" style="font-weight:700; color:var(--success);">₹1.20 / km</td>
+                <td id="tbl-home-km">0 km</td>
+                <td id="tbl-home-pct">0.0%</td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--primary);">⚡ Public DC Fast Charging</strong></td>
+                <td><strong id="tbl-dc-dispenser-units" style="color:var(--primary);">0 kWh</strong> (dispenser)</td>
+                <td id="tbl-dc-pack-kwh">0 kWh</td>
+                <td id="tbl-dc-total-cost" style="font-weight:700; color:var(--primary);">₹0</td>
+                <td id="tbl-dc-cost-kwh" style="font-weight:700;">₹22.43 / kWh</td>
+                <td id="tbl-dc-cost-km" style="font-weight:700; color:var(--primary);">₹2.88 / km</td>
+                <td id="tbl-dc-km">0 km</td>
+                <td id="tbl-dc-pct">0.0%</td>
+              </tr>
+              <tr style="border-top:2px solid var(--card-border); background:rgba(255,255,255,0.02);">
+                <td><strong style="color:#f8fafc;">🔌 Combined Lifetime Blended</strong></td>
+                <td><strong id="tbl-total-grid-units" style="color:#f8fafc; font-size:0.95rem;">0 u</strong></td>
+                <td id="tbl-total-pack-kwh" style="font-weight:700;">0 kWh</td>
+                <td id="tbl-total-cost" style="font-weight:800; color:var(--success); font-size:0.95rem;">₹0</td>
+                <td id="tbl-blended-cost-kwh" style="font-weight:800; font-size:0.95rem;">₹0.00 / kWh</td>
+                <td id="tbl-blended-cost-km" style="font-weight:800; color:var(--success); font-size:0.95rem;">₹0.00 / km</td>
+                <td id="tbl-total-km" style="font-weight:700;">0 km</td>
+                <td style="font-weight:700;">100.0%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ADD / BACKFILL TRIP FORM -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
+        <div class="card-title" style="color:var(--primary);">
+          <span>+ Add New or Past Completed Trip to Ledger</span>
+        </div>
+
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Trip Date</label>
+            <input type="date" id="trip-input-date" />
+          </div>
+          <div class="form-group">
+            <label>Trip Route / Description</label>
+            <input type="text" id="trip-input-name" placeholder="e.g. Coimbatore - Salem - Hosur" value="Coimbatore - Salem - Hosur" />
+          </div>
+          <div class="form-group">
+            <label>Start Odometer (km)</label>
+            <input type="number" id="trip-input-start-odo" value="5400" step="10" oninput="autoCalcTripFormDist()" />
+          </div>
+          <div class="form-group">
+            <label>Arrival Odometer (km)</label>
+            <input type="number" id="trip-input-end-odo" value="5900" step="10" oninput="autoCalcTripFormDist()" />
+          </div>
+          <div class="form-group">
+            <label>Trip Distance (km)</label>
+            <input type="number" id="trip-input-dist" value="500" step="1" oninput="autoCalcTripFormOdo()" />
+          </div>
+        </div>
+
+        <div class="grid-inputs" style="margin-top:0.5rem;">
+          <div class="form-group">
+            <label>Trip Avg Efficiency (Wh/km)</label>
+            <input type="number" id="trip-input-whkm" value="136" step="1" />
+          </div>
+          <div class="form-group">
+            <label>Net Energy Cost (₹)</label>
+            <input type="number" id="trip-input-energy-cost" value="1128" step="10" />
+          </div>
+          <div class="form-group">
+            <label>Driver Wages & Batta (₹)</label>
+            <input type="number" id="trip-input-driver-cost" value="1250" step="50" />
+          </div>
+          <div class="form-group">
+            <label>Fastag Highway Tolls (₹)</label>
+            <input type="number" id="trip-input-toll-cost" value="560" step="10" />
+          </div>
+        </div>
+
+        <div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
+          <button class="btn" onclick="addManualTripToLedger()">💾 Add Trip to Lifetime Ledger</button>
+        </div>
+      </div>
+
+      <!-- EMPIRICAL STATISTICAL VARIANCE & OUTLIER MATRIX CARD -->
+      <div class="card" style="border-color: rgba(168, 85, 247, 0.4); margin-top: 0.85rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <span style="font-size:0.85rem; font-weight:700; color:var(--driver);">📊 Empirical Statistical Variance & Outlier Matrix (8 Discrete Highway Legs)</span>
+          <span class="badge" style="background:rgba(168, 85, 247, 0.2); color:#c084fc;">n = 8 Legs | 891.0 km</span>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Sample Count (n)</th>
+                <th>Mean (&mu;)</th>
+                <th>Median</th>
+                <th>Std Dev (&sigma;)</th>
+                <th>Min</th>
+                <th>Max</th>
+                <th>IQR (25%–75%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Distance (km)</strong></td>
+                <td>8</td>
+                <td>111.4</td>
+                <td>118.0</td>
+                <td>48.1</td>
+                <td>46.0</td>
+                <td>172.0</td>
+                <td>78.3 – 148.0</td>
+              </tr>
+              <tr>
+                <td><strong>Energy Discharged (kWh)</strong></td>
+                <td>8</td>
+                <td>17.0</td>
+                <td>19.4</td>
+                <td>6.83</td>
+                <td>6.46</td>
+                <td>24.70</td>
+                <td>11.02 – 21.95</td>
+              </tr>
+              <tr>
+                <td><strong>Efficiency (km / 1% SoC)</strong></td>
+                <td>8</td>
+                <td style="color:var(--primary); font-weight:700;">2.50</td>
+                <td>2.61</td>
+                <td>0.35</td>
+                <td style="color:var(--danger); font-weight:700;">1.87</td>
+                <td style="color:var(--success); font-weight:700;">2.97</td>
+                <td>2.38 – 2.67</td>
+              </tr>
+              <tr>
+                <td><strong>Specific Consumption (Wh/km)</strong></td>
+                <td>8</td>
+                <td style="color:var(--primary); font-weight:700;">155.0</td>
+                <td>145.6</td>
+                <td>24.4</td>
+                <td style="color:var(--success); font-weight:700;">128.1</td>
+                <td style="color:var(--danger); font-weight:700;">203.3</td>
+                <td>142.8 – 160.5</td>
+              </tr>
+              <tr>
+                <td><strong>Economy (km/kWh)</strong></td>
+                <td>8</td>
+                <td>6.58</td>
+                <td>6.87</td>
+                <td>0.92</td>
+                <td>4.92</td>
+                <td>7.81</td>
+                <td>6.26 – 7.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Notable Outliers Callout Box -->
+        <div style="margin-top:0.75rem; display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:0.6rem; font-size:0.78rem;">
+          <div style="background:#060a12; padding:0.6rem 0.75rem; border-radius:0.4rem; border:1px solid rgba(239, 68, 68, 0.35);">
+            <div style="color:var(--danger); font-weight:700; margin-bottom:0.2rem;">🌧️ Max Consumption Outlier (Heavy Rain):</div>
+            <div>Leg 04 (4,601 &rarr; 4,687 km) spiked to <strong>203.3 Wh/km</strong> (1.87 km/1% SoC)—a +38.3% drag penalty from standing water, defogger, and hydrodynamic resistance.</div>
+          </div>
+          <div style="background:#060a12; padding:0.6rem 0.75rem; border-radius:0.4rem; border:1px solid rgba(34, 197, 94, 0.35);">
+            <div style="color:var(--success); font-weight:700; margin-bottom:0.2rem;">🌙 Min Consumption Outlier (Cool Night):</div>
+            <div>Leg 12 (5,083 &rarr; 5,172 km) achieved <strong>128.1 Wh/km</strong> (2.97 km/1% SoC)—a +12.9% efficiency leap enabled by 26°C night air, minimal AC load, and steady momentum.</div>
+          </div>
+          <div style="background:#060a12; padding:0.6rem 0.75rem; border-radius:0.4rem; border:1px solid rgba(245, 158, 11, 0.35);">
+            <div style="color:var(--warning); font-weight:700; margin-bottom:0.2rem;">🚦 Urban Heat &amp; Idling Crawl (32°C Heat):</div>
+            <div>Leg 11 (5,028 &rarr; 5,083 km) degraded to <strong>179.6 Wh/km</strong> (2.12 km/1% SoC), where auxiliary AC compressor draw accounted for nearly ~30% of total pack energy.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REAL-WORLD 5-TIER OPERATING BENCHMARKS & RANGE MATRIX CARD -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4); margin-top: 0.85rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <span style="font-size:0.85rem; font-weight:700; color:var(--primary);">🎯 Real-World Operating Benchmarks & Range Matrix (38 kWh LFP)</span>
+          <span class="badge badge-safe">5 Calibrated Operating Tiers</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Operating Condition</th>
+                <th>Efficiency (km/1%)</th>
+                <th>Consumption</th>
+                <th>Theoretical 100% Range</th>
+                <th>Safe Hop (85% &rarr; 15%)</th>
+                <th>Recommended Driving Strategy</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong style="color:var(--danger);">Heavy Rain / Standing Water</strong></td>
+                <td>1.87 km / %</td>
+                <td>203.3 Wh/km</td>
+                <td style="color:var(--danger); font-weight:700;">187 km</td>
+                <td style="font-weight:700;">131 km</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Lower cruising speed to 70–75 km/h; set regen to Light/Moderate</td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--warning);">Urban Heat &amp; Crawling AC</strong></td>
+                <td>2.12 km / %</td>
+                <td>179.6 Wh/km</td>
+                <td style="color:var(--warning); font-weight:700;">212 km</td>
+                <td style="font-weight:700;">148 km</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Set cabin AC to 24°C–25°C in Eco mode to curb auxiliary draw</td>
+              </tr>
+              <tr>
+                <td><strong style="color:#f8fafc;">Standard Daytime Highway (80–85 km/h)</strong></td>
+                <td>2.47 km / %</td>
+                <td>154.1 Wh/km</td>
+                <td style="color:var(--primary); font-weight:700;">247 km</td>
+                <td style="font-weight:700;">173 km</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Baseline daytime cruising pace with cabin cooling active</td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--primary);">Cooler Evening Highway (75–80 km/h)</strong></td>
+                <td>2.62 km / %</td>
+                <td>144.8 Wh/km</td>
+                <td style="color:var(--success); font-weight:700;">262 km</td>
+                <td style="font-weight:700;">183 km</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Aerodynamic and HVAC sweet spot for highway transit</td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--success);">Optimal Smooth Night Drive</strong></td>
+                <td>2.97 km / %</td>
+                <td>128.1 Wh/km</td>
+                <td style="color:var(--success); font-weight:800;">297 km</td>
+                <td style="font-weight:800; color:var(--success);">208 km</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Low ambient load (26°C), steady momentum, minimal throttle variance</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- COMPLETE LIFETIME TRIPS TABLE -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <span style="font-size:0.85rem; font-weight:700; color:var(--primary);">📋 Complete Chronological Trip History & Odometer Progression</span>
+          <div style="display:flex; gap:0.4rem;">
+            <button class="btn btn-secondary" onclick="exportLifetimeTripsCSV()">Export Trips CSV</button>
+            <button class="btn-danger" style="padding:0.35rem 0.7rem;" onclick="resetTripsToDefaults()">Reset Defaults</button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Date</th>
+                <th>Route / Segment</th>
+                <th>Odometer Range</th>
+                <th>Distance</th>
+                <th>Starting &rarr; Arrival SoC</th>
+                <th>Net Energy</th>
+                <th>Consumption</th>
+                <th>Efficiency</th>
+                <th>Economy</th>
+                <th>Toll</th>
+                <th>Conditions &amp; Notes</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-trips-table-body">
+              <tr><td colspan="11" style="text-align:center; color:var(--text-muted);">No trips logged yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VERIFIED DC FAST-CHARGING SESSIONS AUDIT TABLE -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4); margin-top: 0.85rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <span style="font-size:0.85rem; font-weight:700; color:var(--primary);">⚡ Verified Public DC Fast-Charging Sessions Log (CCS2)</span>
+          <span class="badge badge-wallet">4 Sessions: 83.22 kWh @ 31.80 kW avg</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Station / Odo</th>
+                <th>Plug-In</th>
+                <th>Unplug</th>
+                <th>SoC Added</th>
+                <th>Net Energy Added</th>
+                <th>Duration</th>
+                <th>Average Net Power</th>
+                <th>Operational &amp; Battery Dynamics</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong style="color:var(--primary);">Event 03</strong></td>
+                <td><strong>Highway Stop (4,601 km)</strong></td>
+                <td>35%</td>
+                <td>90%</td>
+                <td style="color:var(--success); font-weight:700;">+55%</td>
+                <td style="color:var(--success); font-weight:700;">20.90 kWh</td>
+                <td>40 min</td>
+                <td style="color:var(--primary); font-weight:700;">31.35 kW</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">High-speed bulk charge to 90% before storm</td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--primary);">Event 05</strong></td>
+                <td><strong>Highway Stop (4,687 km)</strong></td>
+                <td>44%</td>
+                <td>90%</td>
+                <td style="color:var(--success); font-weight:700;">+46%</td>
+                <td style="color:var(--success); font-weight:700;">17.48 kWh</td>
+                <td>35 min</td>
+                <td style="color:var(--primary); font-weight:700;">29.97 kW</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Mid-route weather buffer top-up</td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--primary);">Event 10</strong></td>
+                <td><strong>Highway Stop (5,028 km)</strong></td>
+                <td>23%</td>
+                <td>90%</td>
+                <td style="color:var(--success); font-weight:700;">+67%</td>
+                <td style="color:var(--success); font-weight:700;">25.46 kWh</td>
+                <td>44 min</td>
+                <td style="color:var(--primary); font-weight:700;">34.72 kW</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Peak bulk entry in optimal low-impedance window</td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--primary);">Event 13</strong></td>
+                <td><strong>Highway Stop (5,172 km)</strong></td>
+                <td>34%</td>
+                <td>85%</td>
+                <td style="color:var(--success); font-weight:700;">+51%</td>
+                <td style="color:var(--success); font-weight:700;">19.38 kWh</td>
+                <td>38 min</td>
+                <td style="color:var(--primary); font-weight:700;">30.60 kW</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Optimal unplug at 85% prior to deep voltage taper</td>
+              </tr>
+              <tr style="border-top:2px solid var(--card-border); background:rgba(255,255,255,0.02);">
+                <td><strong>Total</strong></td>
+                <td><strong>4 DC Fast Charges</strong></td>
+                <td>&mdash;</td>
+                <td>&mdash;</td>
+                <td><strong style="color:var(--success);">+219%</strong></td>
+                <td style="color:var(--success); font-weight:800;">83.22 kWh</td>
+                <td><strong>157 min (2.6h)</strong></td>
+                <td style="color:var(--primary); font-weight:800;">31.80 kW avg</td>
+                <td style="color:var(--text-muted); font-size:0.75rem;">Total DC Fast Charging Ledger</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HOME AC 3.3 kW EQUALIZATION & BALANCING LOG -->
+      <div class="card" style="border-color: rgba(34, 197, 94, 0.4); margin-top: 0.85rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <span style="font-size:0.85rem; font-weight:700; color:var(--success);">🔌 Home 3.3 kW AC Equalization & Charging Sessions</span>
+          <span class="badge badge-safe">BMS Calibration & Balancing</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Plug-in Odo</th>
+                <th>Plug-In SoC</th>
+                <th>Target SoC</th>
+                <th>Net Energy</th>
+                <th>Wall Units (~88% eff)</th>
+                <th>Plug-in Time</th>
+                <th>Completion Time</th>
+                <th>BMS Calibration Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong style="color:var(--success);">Event 07</strong></td>
+                <td><strong>4,834 km</strong></td>
+                <td>34%</td>
+                <td>100% (+66%)</td>
+                <td style="color:var(--success); font-weight:700;">25.08 kWh</td>
+                <td>~28.5 units</td>
+                <td>7:30 PM</td>
+                <td>~5:00 AM</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">Full post-trip cell equalization, passive bleed, Coulomb zeroing</td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--success);">Event 15</strong></td>
+                <td><strong>5,320 km</strong></td>
+                <td>27%</td>
+                <td>100% (+73%)</td>
+                <td style="color:var(--success); font-weight:700;">27.74 kWh</td>
+                <td>~31.5 units</td>
+                <td>1:40 AM</td>
+                <td>~11:40 AM</td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">60% reached at 6:00 AM; 100% balanced at 11:40 AM</td>
+              </tr>
+              <tr style="border-top:2px solid var(--card-border); background:rgba(255,255,255,0.02);">
+                <td><strong>Total</strong></td>
+                <td><strong>2 AC Sessions</strong></td>
+                <td>&mdash;</td>
+                <td>&mdash;</td>
+                <td style="color:var(--success); font-weight:800;">52.82 kWh</td>
+                <td style="font-weight:700;">~60.0 units</td>
+                <td>&mdash;</td>
+                <td>&mdash;</td>
+                <td style="color:var(--text-muted); font-size:0.75rem;">Total Home AC Charging Ledger</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 3: DESTINATION & HOTEL OVERNIGHT AC CHARGING HUB     -->
     <!-- ======================================================== -->
     <div id="tab-hotel" class="tab-pane">
       <div class="card">
@@ -832,7 +1634,63 @@
       </div>
     </div>
 
-    <!-- ======================================================== -->
+<!-- MODULE 8: FASTAG HIGHWAY CORRIDOR & PLAZA-BY-PLAZA TOLL RECONCILIATION -->
+      <div class="card" style="border-color: rgba(234, 179, 8, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--solar); font-weight:700;">
+          <span>🛣️ Fastag Toll Corridor Matrix &amp; 24-Hour Return Discount Tracker</span>
+          <span class="badge" style="background:rgba(234, 179, 8, 0.18); color:var(--solar);" id="corridor-toll-badge">NH44/NH544 Corridor</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Audits plaza-by-plaza Fastag deductions across regional highway routes (Coimbatore &rarr; Salem &rarr; Hosur &rarr; Bengaluru) and applies automatic 50% concessions for return passages completed within 24 hours.
+        </p>
+
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Selected Highway Corridor</label>
+            <select id="toll-corridor-select" onchange="auditCorridorTolls()">
+              <option value="cbe_blr" selected>Coimbatore &rarr; Salem &rarr; Hosur &rarr; Bengaluru (7 Plazas)</option>
+              <option value="cbe_salem">Coimbatore &rarr; Erode &rarr; Salem (3 Plazas)</option>
+              <option value="cbe_mudumalai">Coimbatore &rarr; Mettupalayam &rarr; Mudumalai</option>
+              <option value="custom">Custom Toll Journey</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>24-Hour Return Journey Concession</label>
+            <select id="toll-return-discount" onchange="auditCorridorTolls()">
+              <option value="yes" selected>Yes (Within 24 Hours - 50% Concession on Return)</option>
+              <option value="no">No (Standard One-Way Fare Each Direction)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto; margin-top:0.6rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>Plaza Name</th>
+                <th>Highway</th>
+                <th>Single Journey (₹)</th>
+                <th>Return Fare (24h)</th>
+                <th>Active Deduction</th>
+              </tr>
+            </thead>
+            <tbody id="toll-corridor-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="grid-results" style="margin-top:0.6rem;">
+          <div><div class="stat-sub">One-Way Toll Total</div><div id="toll-oneway-total" class="stat-val" style="color:var(--text);">₹650</div><div class="stat-sub">7 NHAI Toll Plazas</div></div>
+          <div><div class="stat-sub">Round-Trip Total (with Discount)</div><div id="toll-roundtrip-total" class="stat-val" style="color:var(--solar);">₹975</div><div class="stat-sub">Saved ₹325 via 24h return concession</div></div>
+          <div><div class="stat-sub">Fastag Wallet Liquidity Check</div><div id="toll-wallet-status" class="stat-val" style="color:var(--success); font-size:1.15rem;">Adequate</div><div class="stat-sub" id="toll-wallet-sub">₹1,200 balance covers round trip</div></div>
+        </div>
+
+        <div style="margin-top:0.6rem;">
+          <button class="btn btn-secondary" onclick="applyTollsToActiveTrip()">📥 Auto-Apply Tolls to Active Highway Planner</button>
+        </div>
+      </div>
+    </div>
+
+        <!-- ======================================================== -->
     <!-- TAB 4: SERVICE, MAINTENANCE, WHEEL CARE & 12V BATTERY    -->
     <!-- ======================================================== -->
     <div id="tab-maint" class="tab-pane">
@@ -913,7 +1771,7 @@
           </div>
           <div class="form-group">
             <label>Odometer Reading (km)</label>
-            <input type="number" id="maint-input-odo" value="5400" step="50" placeholder="e.g. 5400" />
+            <input type="number" id="maint-input-odo" value="5320" step="50" placeholder="e.g. 5400" />
           </div>
           <div class="form-group">
             <label>Maintenance / Service Type</label>
@@ -952,7 +1810,60 @@
         </div>
       </div>
 
-      <!-- HISTORICAL SERVICE & WHEEL CARE LEDGER TABLE -->
+<!-- MODULE 5: MICHELIN PRIMACY 5 TIRE WEAR & ROTATION MATRIX -->
+      <div class="card" style="border-color: rgba(249, 115, 22, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--maint); font-weight:700;">
+          <span>🛞 Michelin Primacy 5 Wear &amp; Rotation Matrix (215/60 R17 100V XL)</span>
+          <span class="badge badge-safe" id="tire-rotation-badge">Rotation: 2,680 km to go</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Instant EV front-wheel-drive torque creates uneven tread wear. Tracks independent 4-wheel tread depths, rotation countdowns (8,000–10,000 km), and temperature-compensated cold PSI.
+        </p>
+
+        <div class="grid-inputs">
+          <div class="form-group"><label>FL Tread (mm)</label><input type="number" id="tread-fl" value="7.2" step="0.1" oninput="auditTireMatrix()" /></div>
+          <div class="form-group"><label>FR Tread (mm)</label><input type="number" id="tread-fr" value="7.2" step="0.1" oninput="auditTireMatrix()" /></div>
+          <div class="form-group"><label>RL Tread (mm)</label><input type="number" id="tread-rl" value="7.2" step="0.1" oninput="auditTireMatrix()" /></div>
+          <div class="form-group"><label>RR Tread (mm)</label><input type="number" id="tread-rr" value="7.2" step="0.1" oninput="auditTireMatrix()" /></div>
+          <div class="form-group"><label>Ambient Morning Temp (&deg;C)</label><input type="number" id="ambient-temp-psi" value="26" step="1" oninput="auditTireMatrix()" /></div>
+          <div class="form-group"><label>Last Rotation Odo (km)</label><input type="number" id="last-rotation-odo" value="0" step="500" oninput="auditTireMatrix()" /></div>
+        </div>
+
+        <div class="grid-results" style="margin-top:0.6rem;">
+          <div><div class="stat-sub">Temp-Compensated Cold Target</div><div id="tire-target-psi" class="stat-val" style="color:var(--primary); font-size:1.15rem;">34.2 PSI</div><div class="stat-sub">34 PSI @ 25&deg;C base</div></div>
+          <div><div class="stat-sub">Front / Rear Tread Delta</div><div id="tire-tread-delta" class="stat-val" style="color:var(--success); font-size:1.15rem;">0.0 mm</div><div class="stat-sub">Even wear</div></div>
+          <div><div class="stat-sub">Next Rotation Milestone</div><div id="tire-next-rotation" class="stat-val" style="color:var(--maint); font-size:1.15rem;">8,000 km</div><div class="stat-sub" id="tire-rotation-sub">2,680 km remaining</div></div>
+          <div><div class="stat-sub">Tread Wear Rate</div><div id="tire-wear-rate" class="stat-val" style="color:#f8fafc; font-size:1.15rem;">0.00 mm/10k</div><div class="stat-sub">Projected: 45,000 km</div></div>
+        </div>
+      </div>
+
+      <!-- MODULE 4: 12V AUXILIARY DEEP-DISCHARGE & PARASITIC LOAD AUDIT -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--primary); font-weight:700;">
+          <span>🔋 12V Lead-Acid Auxiliary Battery Deep-Discharge &amp; Storage Audit</span>
+          <span class="badge badge-safe" id="aux-12v-badge">12V Healthy (12.7V)</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          The 12V auxiliary battery powers the contactor relays to boot the high-voltage pack. If 12V drops below 12.1V, the vehicle will not enter READY mode. Section 3.2.7 mandates weekly remote AC wake-up or terminal disconnect for long parking.
+        </p>
+
+        <div class="grid-inputs">
+          <div class="form-group"><label>12V Measured Rest Voltage (V)</label><input type="number" id="diag-12v-volt" value="12.7" step="0.1" oninput="audit12vParasitic()" /></div>
+          <div class="form-group"><label>12V Battery Installation Date</label><input type="date" id="aux-12v-install-date" value="2026-08-10" onchange="audit12vParasitic()" /></div>
+          <div class="form-group"><label>Connected Background Equipment</label><select id="aux-12v-load-type" onchange="audit12vParasitic()"><option value="stock" selected>Stock Vehicle Sleep (~25 mA)</option><option value="dashcam">Parking Dashcam / OBD Tracker (~180 mA)</option><option value="high">Dual Dashcam + GPS Tracker (~300 mA)</option></select></div>
+          <div class="form-group"><label>Planned Airport / Inactive Parking (Days)</label><input type="number" id="aux-12v-parking-days" value="7" min="1" max="90" oninput="audit12vParasitic()" /></div>
+        </div>
+
+        <div class="grid-results" style="margin-top:0.6rem;">
+          <div><div class="stat-sub">12V State of Charge</div><div id="aux-12v-soc" class="stat-val" style="color:var(--success); font-size:1.15rem;">100%</div><div class="stat-sub">No sulfation detected</div></div>
+          <div><div class="stat-sub">Max Inactive Parking Days</div><div id="aux-12v-max-days" class="stat-val" style="color:var(--primary); font-size:1.15rem;">65 Days</div><div class="stat-sub">Safe before 12.1V cutoff</div></div>
+          <div><div class="stat-sub">12V Replacement Countdown</div><div id="aux-12v-age-countdown" class="stat-val" style="color:var(--warning); font-size:1.15rem;">21 Months left</div><div class="stat-sub">24-Month tropical life guide</div></div>
+        </div>
+
+        <div id="aux-12v-advice-box" style="margin-top:0.6rem; font-size:0.78rem;"></div>
+      </div>
+
+            <!-- HISTORICAL SERVICE & WHEEL CARE LEDGER TABLE -->
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
           <span style="font-size:0.85rem; font-weight:700; color:var(--primary);">📋 Complete Maintenance & Service History</span>
@@ -981,22 +1892,62 @@
     </div>
 
     <!-- ======================================================== -->
-    <!-- TAB 5: BATTERY HEALTH (SOH) & BMS FIRMWARE LEDGER        -->
+    <!-- TAB 5: BATTERY HEALTH (SOH) & LIFETIME RANGE HUB         -->
     <!-- ======================================================== -->
     <div id="tab-battery" class="tab-pane">
       <div class="card">
-        <div class="card-title">🔋 LFP Battery State of Health (SOH) & Pack Calibration</div>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-          LFP chemistry features an ultra-flat voltage curve between 20% and 80%. Top-balancing on AC slow charging is essential for the BMS to eliminate Coulomb drift and accurately calculate usable capacity.
+        <div class="card-title">
+          <span>🔋 Lifetime Range & LFP Degradation Analytics</span>
+          <span class="badge badge-safe" id="life-retention-badge">100.0% Retention</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Track your EV's true lifetime range capacity, capacity retention, equivalent battery cycles, and range degradation across odometer milestones. LFP chemistry retains high capacity over 2,500–3,500 cycles with minimal degradation.
         </p>
 
+        <!-- TOP LIFETIME RANGE BANNER -->
+        <div class="hero-range-banner" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(34, 197, 94, 0.15) 100%); border-color: var(--primary); margin-top:0; margin-bottom:0.75rem;">
+          <div>
+            <div class="hero-label">Current 100% Real Range</div>
+            <div id="life-current-range" class="hero-val" style="color:var(--success); font-size:1.55rem;">304.0 km</div>
+            <div class="stat-sub" id="life-range-sub">At 85 km/h (125 Wh/km)</div>
+          </div>
+          <div>
+            <div class="hero-label">Lifetime Range Lost</div>
+            <div id="life-range-lost" class="hero-val" style="color:var(--primary); font-size:1.55rem;">-0.0 km</div>
+            <div class="stat-sub" id="life-lost-sub">0.0% degradation vs factory</div>
+          </div>
+          <div>
+            <div class="hero-label">Equivalent Full Cycles (EFC)</div>
+            <div id="life-efc-cycles" class="hero-val" style="color:#f8fafc; font-size:1.55rem;">17.8 EFC</div>
+            <div class="stat-sub" id="life-efc-sub">675 kWh throughput</div>
+          </div>
+          <div>
+            <div class="hero-label">Projected 80% SOH Life</div>
+            <div id="life-proj-life" class="hero-val" style="color:var(--warning); font-size:1.55rem;">~7,60,000 km</div>
+            <div class="stat-sub">(3,000 LFP cycle potential)</div>
+          </div>
+        </div>
+
+        <!-- INPUTS: SOH & LIFETIME BASELINE -->
         <div class="grid-inputs">
           <div class="form-group">
             <label>Current Battery SOH (%)</label>
             <input type="number" id="diag-soh-input" value="100.0" min="60" max="100" step="0.1" oninput="updateSohFromTab()" />
           </div>
           <div class="form-group">
-            <label>Cell Voltage Delta at 100% (mV)</label>
+            <label>Total Lifetime Odometer (km)</label>
+            <input type="number" id="life-odo-input" value="5320" step="50" oninput="runLifetimeAudit()" />
+          </div>
+          <div class="form-group">
+            <label>Lifetime Blended Pacing (Wh/km)</label>
+            <input type="number" id="life-whkm-input" value="125" step="1" oninput="runLifetimeAudit()" />
+          </div>
+          <div class="form-group">
+            <label>LFP Rated Battery Cycles</label>
+            <input type="number" id="life-cycles-rating" value="3000" step="100" oninput="runLifetimeAudit()" />
+          </div>
+          <div class="form-group">
+            <label>Cell Voltage Delta @ 100% (mV)</label>
             <input type="number" id="diag-cell-delta" value="12" step="1" oninput="auditCellDelta()" />
           </div>
           <div class="form-group">
@@ -1007,17 +1958,42 @@
 
         <div id="diag-status-box" style="margin-top: 0.85rem; padding: 0.85rem; border-radius: 0.4rem; background: #060a12; border: 1px solid #1a2538;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-            <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Pack Health Status</span>
+            <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Pack Health & Degradation Status</span>
             <span id="diag-status-badge" class="badge badge-safe">Pristine Health</span>
           </div>
           <div id="diag-status-desc" style="font-size: 0.82rem; color: var(--text);"></div>
         </div>
 
-        <!-- SOH Logbook -->
-        <div style="margin-top: 1rem;">
+        <!-- LIFETIME RANGE DEGRADATION MATRIX BY CRUISING SPEED -->
+        <div style="margin-top: 1.25rem;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-bottom: 0.4rem;">
+            📈 Cruising Speed vs. Lifetime Range Degradation Matrix
+          </div>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cruising Speed</th>
+                  <th>Consumption</th>
+                  <th>Factory Range (100% SOH)</th>
+                  <th>Current Range (Active SOH)</th>
+                  <th>Range Lost</th>
+                  <th>80% SOH Floor Range</th>
+                </tr>
+              </thead>
+              <tbody id="life-matrix-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SOH & LIFETIME RANGE MILESTONE LOGBOOK -->
+        <div style="margin-top: 1.25rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary);">Battery Health (SOH) Logbook</span>
-            <button class="btn btn-secondary" onclick="logCurrentSoh()">+ Record Current SOH</button>
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary);">📋 Lifetime Range & SOH Milestone Logbook</span>
+            <div style="display: flex; gap: 0.4rem;">
+              <button class="btn btn-secondary" onclick="logLifetimeMilestone()">+ Record Milestone</button>
+              <button class="btn btn-secondary" onclick="exportLifetimeCSV()">Export CSV</button>
+            </div>
           </div>
           <div style="overflow-x: auto;">
             <table>
@@ -1026,18 +2002,59 @@
                   <th>Date</th>
                   <th>Odometer</th>
                   <th>SOH %</th>
-                  <th>Effective Pack</th>
+                  <th>Usable Pack</th>
+                  <th>100% Range (85 km/h)</th>
+                  <th>Range Lost</th>
+                  <th>Full Cycles (EFC)</th>
                   <th>Cell Delta</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="soh-log-body">
-                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No SOH records logged yet.</td></tr>
+                <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No lifetime range records logged yet.</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Vehicle Firmware & BMS Software Version Ledger -->
+<!-- MODULE 2 & 3: FACTORY EQUALIZATION & CONSECUTIVE DC THERMAL SOAK -->
+      <div class="card" style="border-color: rgba(34, 197, 94, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--success); font-weight:700;">
+          <span>⚡ LFP Equalization Counter &amp; DC Thermal Soak Auditor</span>
+          <span class="badge badge-safe" id="bms-equalize-badge">Equalization Compliant</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Mandated by <strong>Owner's Manual Section 3.2.6</strong>: Slow AC charge to 100% SoC is required at least once every 15 days or after every 4 DC fast charges to zero Coulomb drift and balance cells. Also monitors consecutive DC fast charges against the 45 kW Excite intake limit.
+        </p>
+
+        <div class="grid-inputs">
+          <div class="form-group">
+            <label>Consecutive DC Fast Charges (since last 100% AC)</label>
+            <input type="number" id="bms-dc-consecutive" value="0" min="0" max="10" oninput="auditBmsEqualization()" />
+          </div>
+          <div class="form-group">
+            <label>Days Elapsed Since Last 100% AC Soak</label>
+            <input type="number" id="bms-days-since-ac" value="2" min="0" max="60" oninput="auditBmsEqualization()" />
+          </div>
+          <div class="form-group">
+            <label>Hardware DC Fast Charging Cap</label>
+            <input type="text" value="45 kW Max (38 kWh Excite)" disabled style="color:var(--primary); font-weight:700;" />
+          </div>
+          <div class="form-group">
+            <label>Consecutive Highway DC Stints Today</label>
+            <select id="thermal-dc-stint-count" onchange="auditThermalSoak()">
+              <option value="1" selected>1st DC Stop (Cold Pack ~30-35 kW)</option>
+              <option value="2">2nd DC Stop (Warm Pack ~32-35 kW Peak)</option>
+              <option value="3">3rd+ DC Stop (Thermal Soak Alert - Derate Risk)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="bms-equalize-alert-box" style="margin-top:0.6rem; font-size:0.78rem;"></div>
+        <div id="thermal-soak-advisory-box" style="margin-top:0.6rem; font-size:0.78rem;"></div>
+      </div>
+
+                <!-- Vehicle Firmware & BMS Software Version Ledger -->
         <div style="margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px dashed var(--card-border);">
           <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">
             💻 BMS & Vehicle Control Unit (VCU) Firmware Ledger
@@ -1136,7 +2153,33 @@
       </div>
     </div>
 
-    <!-- ======================================================== -->
+<!-- MODULE 6: V2L 3.3 kW DISCHARGE UTILITY CALCULATOR -->
+      <div class="card" style="border-color: rgba(234, 179, 8, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--solar); font-weight:700;">
+          <span>🔌 MG Windsor V2L (Vehicle-to-Load) 3.3 kW Appliance Forecaster</span>
+          <span class="badge" style="background:rgba(234, 179, 8, 0.18); color:var(--solar);">220V / 16A Output</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Per <strong>Owner's Manual Section 3.2.6</strong>: Powers 220V household appliances directly from the 38 kWh LFP pack up to 3.3 kW / 16A. Automatically terminates after 1-hour continuous cycles or upon hitting your set SoC cutoff floor.
+        </p>
+
+        <div class="grid-inputs">
+          <div class="form-group"><label>Connected Appliance Load (Watts)</label><input type="number" id="v2l-watts" value="1200" step="50" min="50" max="3300" oninput="auditV2L()" /></div>
+          <div class="form-group"><label>Current Battery SoC (%)</label><input type="number" id="v2l-soc-in" value="80" min="15" max="100" oninput="auditV2L()" /></div>
+          <div class="form-group"><label>Discharge Cutoff Limit</label><select id="v2l-cutoff" onchange="auditV2L()"><option value="20" selected>20% SoC (Default Safe Reserve)</option><option value="10">10% SoC (Manual Minimum Limit)</option></select></div>
+          <div class="form-group"><label>Common Appliance Presets</label><div class="preset-group" style="margin-top:0.15rem;"><span class="preset-chip" onclick="setV2LWatts(1500)">Induction (1500W)</span><span class="preset-chip" onclick="setV2LWatts(800)">Kettle (800W)</span><span class="preset-chip" onclick="setV2LWatts(300)">Laptops (300W)</span><span class="preset-chip active" id="chip-v2l" onclick="setV2LWatts(1200)">Home (1200W)</span></div></div>
+        </div>
+
+        <div class="grid-results" style="margin-top:0.6rem;">
+          <div><div class="stat-sub">Usable V2L Energy</div><div id="v2l-avail-energy" class="stat-val" style="color:var(--solar); font-size:1.15rem;">22.80 kWh</div><div class="stat-sub" id="v2l-soc-span">80% &rarr; 20% (60% pack)</div></div>
+          <div><div class="stat-sub">Continuous Run Time</div><div id="v2l-runtime-val" class="stat-val" style="color:var(--success); font-size:1.15rem;">19h 00m</div><div class="stat-sub">1-hr cycle timer active</div></div>
+          <div><div class="stat-sub">Output Amperage (@ 220V)</div><div id="v2l-amps-val" class="stat-val" style="color:var(--primary); font-size:1.15rem;">5.5 Amps</div><div class="stat-sub">Within 16A socket limit</div></div>
+          <div><div class="stat-sub">Equivalent Driving km Used</div><div id="v2l-km-equiv" class="stat-val" style="color:#f8fafc; font-size:1.15rem;">155 km</div><div class="stat-sub">At 147 Wh/km baseline</div></div>
+        </div>
+      </div>
+    </div>
+
+        <!-- ======================================================== -->
     <!-- TAB 7: SPEED, HVAC & ENVIRONMENTAL DRAG MATRIX           -->
     <!-- ======================================================== -->
     <div id="tab-aero" class="tab-pane">
@@ -1167,25 +2210,136 @@
     <!-- TAB 8: LIFETIME TCO, WARRANTY & EMERGENCY PROTOCOLS      -->
     <!-- ======================================================== -->
     <div id="tab-tco" class="tab-pane">
-      <!-- TCO CARD -->
+<!-- MODULE 1: OFFICIAL MG WINDSOR SERVICE SCHEDULE & CONSUMABLES -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--primary); font-weight:700;">
+          <span>🗓️ Official MG Windsor EV Factory Service Schedule (i-SMART Verified)</span>
+          <span class="badge badge-safe" id="service-countdown-badge">Next: 1 Yr / 15,000 km</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Official JSW MG Service Protocol: <strong>I</strong> = Investigation & Inspection | <strong>U</strong> = Software / BMS Update | <strong>R</strong> = Replacement. Periodic intervals run at 15,000 km / 1-Year steps following the initial 5,000 km / 3-Month check.
+        </p>
+
+        <div class="grid-results" style="margin-top:0; margin-bottom:0.75rem;">
+          <div>
+            <div class="stat-sub">Current Vehicle Odometer</div>
+            <div id="srv-curr-odo" class="stat-val" style="color:var(--text);">5,320 km</div>
+            <div class="stat-sub" style="color:var(--success);">1st 5,000 km check active</div>
+          </div>
+          <div>
+            <div class="stat-sub">Next Periodic Service</div>
+            <div class="stat-val" style="color:var(--primary);">15,000 km</div>
+            <div class="stat-sub" id="srv-km-remaining" style="color:var(--success); font-weight:700;">9,680 km remaining</div>
+          </div>
+          <div>
+            <div class="stat-sub">Next Service Target Date</div>
+            <div class="stat-val" style="color:#f8fafc;">August 2027</div>
+            <div class="stat-sub">1 Year / 15,000 km milestone</div>
+          </div>
+          <div>
+            <div class="stat-sub">Warranty Grace Window</div>
+            <div class="stat-val" style="color:var(--warning);">&plusmn;500 km / 15 Days</div>
+            <div class="stat-sub">Strict factory compliance</div>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Service Milestone</th>
+                <th>Time / Km Interval</th>
+                <th>Scope (I / U / R)</th>
+                <th>Odometer Target</th>
+                <th>Remaining Distance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:rgba(34, 197, 94, 0.05);">
+                <td><strong style="color:var(--success);">1st Free Service</strong></td>
+                <td>3 Months / 5,000 km</td>
+                <td><strong>I</strong> (Inspection) + <strong>U</strong> (BMS Update)</td>
+                <td>5,000 km (&plusmn;500 km)</td>
+                <td><strong style="color:var(--success);">5,320 km (In Grace/Done)</strong></td>
+                <td><span class="badge badge-safe">Current Odo Window</span></td>
+              </tr>
+              <tr>
+                <td><strong>2nd Periodic Service</strong></td>
+                <td>1 Year / 15,000 km</td>
+                <td><strong>I</strong> + <strong>U</strong> + <strong>R</strong> (PM 2.5 Cabin Filter)</td>
+                <td>15,000 km</td>
+                <td><strong style="color:var(--primary);">9,680 km</strong></td>
+                <td><span class="badge badge-safe">Upcoming</span></td>
+              </tr>
+              <tr>
+                <td><strong>3rd Periodic Service</strong></td>
+                <td>2 Years / 30,000 km</td>
+                <td><strong>I</strong> + <strong>U</strong> + <strong>R</strong> (Brake Fluid / Filter)</td>
+                <td>30,000 km</td>
+                <td><strong>24,680 km</strong></td>
+                <td><span class="badge badge-pill">Scheduled</span></td>
+              </tr>
+              <tr>
+                <td><strong>4th Periodic Service</strong></td>
+                <td>3 Years / 45,000 km</td>
+                <td><strong>I</strong> + <strong>U</strong> + <strong>R</strong> (Reduction Gearbox Oil)</td>
+                <td>45,000 km</td>
+                <td><strong>39,680 km</strong></td>
+                <td><span class="badge badge-pill">Scheduled</span></td>
+              </tr>
+              <tr>
+                <td><strong>5th Periodic Service</strong></td>
+                <td>4 Years / 60,000 km</td>
+                <td><strong>I</strong> + <strong>U</strong> + <strong>R</strong> (Major Consumables)</td>
+                <td>60,000 km</td>
+                <td><strong>54,680 km</strong></td>
+                <td><span class="badge badge-pill">Scheduled</span></td>
+              </tr>
+              <tr>
+                <td><strong>6th Periodic Service</strong></td>
+                <td>5 Years / 75,000 km</td>
+                <td><strong>I</strong> + <strong>U</strong> + <strong>R</strong> (Cabin Filter / Insp)</td>
+                <td>75,000 km</td>
+                <td><strong>69,680 km</strong></td>
+                <td><span class="badge badge-pill">Scheduled</span></td>
+              </tr>
+              <tr>
+                <td><strong>7th Periodic Service</strong></td>
+                <td>6 Years / 90,000 km</td>
+                <td><strong>I</strong> + <strong>U</strong> + <strong>R</strong> (Full Coolant Flush)</td>
+                <td>90,000 km</td>
+                <td><strong>84,680 km</strong></td>
+                <td><span class="badge badge-pill">Scheduled</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+            <!-- TCO CARD -->
       <div class="card">
         <div class="card-title">📊 Total Cost of Ownership (TCO) & Lifetime Wealth Ledger</div>
         <div class="grid-inputs">
           <div class="form-group">
             <label>Total Vehicle Odometer (km)</label>
-            <input type="number" id="tco-odo" value="12500" step="500" oninput="runTcoAudit()" />
+            <input type="number" id="tco-odo" value="5320" step="500" oninput="runTcoAudit()" />
           </div>
           <div class="form-group">
             <label>Total Maintenance Spend (₹) <span style="color:var(--maint);">(Auto-Sum)</span></label>
             <input type="number" id="tco-maint" value="3200" step="500" oninput="runTcoAudit()" />
           </div>
           <div class="form-group">
-            <label>Tire Set Life Expectancy (km)</label>
-            <input type="number" id="tco-tire-km" value="45000" step="5000" oninput="runTcoAudit()" />
+            <label>FASTag 200-Trip Annual Pass (₹/yr)</label>
+            <input type="number" id="tco-pass-fee" value="3075" step="100" oninput="runTcoAudit()" />
           </div>
           <div class="form-group">
             <label>Tire Set Replacement Cost (₹)</label>
             <input type="number" id="tco-tire-cost" value="42000" step="1000" oninput="runTcoAudit()" />
+          </div>
+          <div class="form-group">
+            <label>Tire Set Life Expectancy (km)</label>
+            <input type="number" id="tco-tire-km" value="45000" step="5000" oninput="runTcoAudit()" />
           </div>
         </div>
 
@@ -1254,7 +2408,30 @@
         </div>
       </div>
 
-      <!-- EMERGENCY HARDWARE & OFFLINE PROTOCOL CHECKLIST -->
+<!-- MODULE 7: MONSOON & 300 MM WADING SAFETY LOG -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--primary); font-weight:700;">
+          <span>🌊 Monsoon &amp; 300 mm Water Wading Safety Compliance (Sections 1.2.2 &amp; 3.4.3)</span>
+          <span class="badge badge-safe">Max 300 mm @ &le; 10 km/h</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          The MG Windsor EV can wade through calm accumulated water up to <strong>300 mm depth at speeds under 10 km/h (Creep Mode)</strong>. Driving through standing rain increases specific consumption up to <strong>203.3 Wh/km</strong> (+38.3% drag penalty).
+        </p>
+
+        <div style="background:#060a12; padding:0.75rem; border-radius:0.4rem; border:1px solid #1a2538;">
+          <div style="font-size:0.78rem; font-weight:700; color:var(--primary); text-transform:uppercase; margin-bottom:0.5rem;">
+            🚨 Post-Wading Safety Verification Checklist:
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:0.5rem; font-size:0.8rem;">
+            <label style="display:flex; align-items:center; gap:0.4rem;"><input type="checkbox" checked style="width:auto;" /> 1. Brake drying performed (gentle repeated pedal taps)</label>
+            <label style="display:flex; align-items:center; gap:0.4rem;"><input type="checkbox" checked style="width:auto;" /> 2. High-Voltage insulation warning lamp verified OFF</label>
+            <label style="display:flex; align-items:center; gap:0.4rem;"><input type="checkbox" checked style="width:auto;" /> 3. No high-pressure water (&gt;0.5 bar) sprayed at battery/motor</label>
+            <label style="display:flex; align-items:center; gap:0.4rem;"><input type="checkbox" checked style="width:auto;" /> 4. Front wiper blade rubber inspected (free from grit/mud)</label>
+          </div>
+        </div>
+      </div>
+
+            <!-- EMERGENCY HARDWARE & OFFLINE PROTOCOL CHECKLIST -->
       <div class="card" style="border-color: rgba(239, 68, 68, 0.4);">
         <div class="card-title" style="color:var(--danger);">
           <span>🚨 Emergency Hardware & Highway Stranding Protocols</span>
@@ -1275,7 +2452,68 @@
     </div>
   </div>
 
-  <!-- ==================== HUD MODAL FOR SCREENSHOT ==================== -->
+        <!-- COMPREHENSIVE OFFLINE JSON BACKUP & DISASTER RECOVERY VAULT -->
+      <div class="card" style="border-color: rgba(34, 197, 94, 0.4); margin-top: 0.85rem;">
+        <div class="card-title" style="color:var(--success); font-weight:700;">
+          <span>💾 Comprehensive Offline JSON Backup &amp; Disaster Recovery Vault</span>
+          <span class="badge badge-safe">Local Storage Engine</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Export your complete EV dataset—including all 9 verified historical trips, 157-minute DC fast-charging sessions, maintenance and wheel alignment logs, SOH milestone entries, TPMS calibration, and the ₹3,075 FASTag annual pass counter—as a portable JSON file. Restore instantly across new devices or browser cache clears.
+        </p>
+
+        <div class="grid-results" style="margin-top:0; margin-bottom:0.75rem;">
+          <div>
+            <div class="stat-sub">Lifetime Trips Stored</div>
+            <div id="backup-trips-count" class="stat-val" style="color:var(--primary); font-size:1.15rem;">-- Trips</div>
+            <div class="stat-sub">Complete odo chain</div>
+          </div>
+          <div>
+            <div class="stat-sub">Maintenance Records</div>
+            <div id="backup-maint-count" class="stat-val" style="color:var(--maint); font-size:1.15rem;">-- Records</div>
+            <div class="stat-sub">Alignments &amp; services</div>
+          </div>
+          <div>
+            <div class="stat-sub">SOH Milestone Logs</div>
+            <div id="backup-soh-count" class="stat-val" style="color:var(--success); font-size:1.15rem;">-- Milestones</div>
+            <div class="stat-sub">Battery health checks</div>
+          </div>
+          <div>
+            <div class="stat-sub">Active FASTag Pass Pool</div>
+            <div id="backup-pass-status" class="stat-val" style="color:var(--solar); font-size:1.15rem;">200 Crossings</div>
+            <div class="stat-sub">₹3,075 Annual Pass</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+          <button class="btn" style="flex:1; min-width:200px; background:linear-gradient(135deg, #15803d, #22c55e); color:#fff;" onclick="exportFullJSONBackup()">
+            📥 Export Complete JSON Backup (.json)
+          </button>
+          <button class="btn btn-secondary" style="flex:1; min-width:180px;" onclick="copyBackupJSONToClipboard()">
+            📋 Copy JSON to Clipboard
+          </button>
+        </div>
+
+        <div style="background:#060a12; padding:0.75rem; border-radius:0.4rem; border:1px solid #1a2538;">
+          <div style="font-size:0.78rem; font-weight:700; color:var(--primary); text-transform:uppercase; margin-bottom:0.4rem;">
+            🔄 Restore Database From Backup
+          </div>
+          <div style="margin-bottom:0.5rem;">
+            <input type="file" id="backup-file-input" accept=".json,application/json" style="width:100%; font-size:0.8rem; padding:0.4rem;" onchange="handleBackupFileUpload(event)" />
+          </div>
+          <div class="form-group" style="margin-top:0.4rem;">
+            <label>Or Paste Raw Backup JSON String Directly:</label>
+            <textarea id="backup-paste-area" rows="3" style="width:100%; background:#080d18; border:1px solid var(--card-border); color:var(--text); border-radius:0.375rem; font-family:monospace; font-size:0.75rem; padding:0.5rem;" placeholder="Paste backup JSON content here"></textarea>
+          </div>
+          <div style="margin-top:0.4rem;">
+            <button class="btn btn-secondary" style="background:rgba(56, 189, 248, 0.15); border-color:var(--primary); color:var(--primary); font-weight:700;" onclick="restoreFromPastedJSON()">
+              ⚡ Restore All Databases From Text
+            </button>
+          </div>
+        </div>
+      </div>
+
+    <!-- ==================== HUD MODAL FOR SCREENSHOT ==================== -->
   <div id="hud-modal" onclick="if(event.target === this) toggleHUD(false)">
     <div class="hud-box">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; margin-bottom: 1rem;">
@@ -1301,12 +2539,13 @@
       event.currentTarget.classList.add('active');
       document.getElementById(tabId).classList.add('active');
       if (tabId === 'tab-aero') renderAeroTable();
-      if (tabId === 'tab-solar') { runSolarSim(); auditGridLoad(); }
-      if (tabId === 'tab-tco') runTcoAudit();
-      if (tabId === 'tab-battery') auditCellDelta();
-      if (tabId === 'tab-maint') renderMaintenanceTab();
-      if (tabId === 'tab-wallets') auditWallets();
+      if (tabId === 'tab-solar') { runSolarSim(); auditGridLoad(); runLifetimeAudit(); if (typeof auditV2L === 'function') auditV2L(); }
+      if (tabId === 'tab-tco') { runTcoAudit(); if (typeof auditServiceCountdown === 'function') auditServiceCountdown(); if (typeof auditBackupStats === 'function') auditBackupStats(); }
+      if (tabId === 'tab-battery') { auditCellDelta(); runLifetimeAudit(); if (typeof auditBmsEqualization === 'function') auditBmsEqualization(); if (typeof auditThermalSoak === 'function') auditThermalSoak(); }
+      if (tabId === 'tab-maint') { renderMaintenanceTab(); if (typeof auditTireMatrix === 'function') auditTireMatrix(); if (typeof audit12vParasitic === 'function') audit12vParasitic(); }
+      if (tabId === 'tab-wallets') { auditWallets(); if (typeof auditCorridorTolls === 'function') auditCorridorTolls(); }
       if (tabId === 'tab-hotel') runHotelAudit();
+      if (tabId === 'tab-trips') renderLifetimeTripsLedger();
     }
 
     function toggleDriverMode() {
@@ -1451,6 +2690,12 @@
     }
 
     function updateInitialOdo() {
+      const qOdo = document.getElementById('quick-curr-odo');
+      const startVal = parseFloat(document.getElementById('cfg-start-odo').value) || 0;
+      if (qOdo && document.activeElement !== qOdo) {
+        qOdo.value = startVal;
+        syncQuickOdo('curr');
+      }
       const start = parseFloat(document.getElementById('cfg-start-odo').value) || 0;
       if (legsData.length > 0) {
         legsData[0].startOdo = start;
@@ -1460,6 +2705,9 @@
       renderLegsUI();
       calculateTrip();
       renderMaintenanceTab();
+      const lifeOdoElem = document.getElementById('life-odo-input');
+      if (lifeOdoElem) lifeOdoElem.value = start;
+      runLifetimeAudit();
     }
 
     function chainOdometers() {
@@ -1788,9 +3036,10 @@
                   <div class="form-group">
                     <label>Charger Rating</label>
                     <select onchange="updateVal(${idx}, 'chargerKw', this.value)">
-                      <option value="30" ${leg.chargerKw == 30 ? 'selected' : ''}>30 kW DC</option>
-                      <option value="50" ${leg.chargerKw == 50 ? 'selected' : ''}>50 kW DC</option>
-                      <option value="60" ${leg.chargerKw == 60 ? 'selected' : ''}>60 kW DC (Std Fast)</option>
+                      <option value="30" ${leg.chargerKw == 30 ? 'selected' : ''}>30 kW DC (Slow Fast)</option>
+                      <option value="45" ${leg.chargerKw == 45 ? 'selected' : ''}>45 kW DC (Excite 38kWh Hardware Max)</option>
+                      <option value="50" ${leg.chargerKw == 50 ? 'selected' : ''}>50 kW DC (Tapered to 45kW)</option>
+                      <option value="60" ${leg.chargerKw == 60 ? 'selected' : ''}>60 kW DC (Tapered to 45kW)</option>
                       <option value="120" ${leg.chargerKw == 120 ? 'selected' : ''}>120 kW Hypercharger</option>
                     </select>
                   </div>
@@ -2283,6 +3532,7 @@
       document.getElementById('tot-all-inclusive-rate').innerText = "₹" + grandAllInclusiveCostPerKm.toFixed(2) + " / km";
       document.getElementById('tot-grand-cost').innerText = "₹" + Math.round(grandTotalAllInclusiveSpend);
       document.getElementById('tot-cost-split-sub').innerText = `Energy: ₹${Math.round(cumulativeNetCost)} | Drv: ₹${Math.round(driverInfo.total)} | Toll: ₹${Math.round(cumulativeTolls)}`;
+      if (typeof runContingencyRadar === 'function') runContingencyRadar();
       document.getElementById('net-savings').innerText = "₹" + Math.round(netSavings) + ` (${Math.round((netSavings/petrolTotalAllInclusive)*100)}% saved vs Petrol+Driver+Toll)`;
     }
 
@@ -2639,25 +3889,34 @@
     }
 
     function runTcoAudit() {
-      const odo = parseFloat(document.getElementById('tco-odo').value) || 12500;
+      const odo = parseFloat(document.getElementById('tco-odo').value) || 5320;
       const maint = parseFloat(document.getElementById('tco-maint').value) || 3200;
       const tireCost = parseFloat(document.getElementById('tco-tire-cost').value) || 42000;
       const tireLife = parseFloat(document.getElementById('tco-tire-km').value) || 45000;
+      const passFee = parseFloat(document.getElementById('tco-pass-fee')?.value || 3075) || 3075;
 
-      const energyCostAvg = odo * 1.65;
+      // Real-world blended EV energy cost (~₹1.20 home AC / ₹2.88 DC blended ~₹1.47/km)
+      const energyCostAvg = odo * 1.47;
       const tireAmortized = (odo / tireLife) * tireCost;
-      const totalEvSpend = energyCostAvg + maint + tireAmortized;
-      const evPerKm = totalEvSpend / odo;
+      const totalEvSpend = energyCostAvg + maint + tireAmortized + passFee;
+      const evPerKm = odo > 0 ? (totalEvSpend / odo) : 0;
 
+      // Equivalent Petrol (ICE) vehicle costs:
+      // Fuel @ 14 km/L & ₹103/L = ~₹7.36/km
       const iceFuelTotal = (odo / 14) * 103;
+      // Periodic oil/filter/mechanical service @ ₹9,500 per 10k km
       const iceMaint = (odo / 10000) * 9500;
-      const iceTotal = iceFuelTotal + iceMaint + ((odo / 55000) * 32000);
+      // Tires @ ₹32,000 per 55,000 km
+      const iceTires = (odo / 55000) * 32000;
+      // Standard commercial toll fees for ICE without 200-trip pass (~₹0.55/km highway share)
+      const iceTolls = odo * 0.55;
+      const iceTotal = iceFuelTotal + iceMaint + iceTires + iceTolls;
 
       const netSavings = iceTotal - totalEvSpend;
       const co2Kg = (odo / 14) * 2.31;
 
       document.getElementById('tco-ev-total').innerText = "₹" + Math.round(totalEvSpend).toLocaleString('en-IN');
-      document.getElementById('tco-ev-per-km').innerText = "₹" + evPerKm.toFixed(2) + " / km (all-inclusive)";
+      document.getElementById('tco-ev-per-km').innerText = "₹" + evPerKm.toFixed(2) + " / km (Power+Maint+Tires+Pass)";
       document.getElementById('tco-ice-total').innerText = "₹" + Math.round(iceTotal).toLocaleString('en-IN');
       document.getElementById('tco-net-savings').innerText = "₹" + Math.round(netSavings).toLocaleString('en-IN');
       document.getElementById('tco-co2').innerText = Math.round(co2Kg).toLocaleString('en-IN') + " kg";
@@ -2674,7 +3933,7 @@
       if (delta <= 15 && daysAc <= 7) {
         badge.className = "badge badge-safe";
         badge.innerText = "Pristine Balancing (<15 mV)";
-        desc.innerHTML = `Pack cells are tightly balanced (${delta} mV deviation). Nominal SOH is at ${soh}%. Top-balancing is active.`;
+        desc.innerHTML = `Pack cells are tightly balanced (${delta} mV deviation). Active SOH is at ${soh.toFixed(1)}%. Top-balancing is fully calibrated.`;
       } else if (delta <= 30) {
         badge.className = "badge badge-warn";
         badge.innerText = "Normal Wear (15-30 mV)";
@@ -2684,45 +3943,897 @@
         badge.innerText = "Balancing Drift (>30 mV)";
         desc.innerHTML = `Cell delta is elevated (${delta} mV). Complete two consecutive 100% slow AC charging cycles and leave plugged in for 60 minutes after full charge to reset BMS Coulomb drift.`;
       }
+      runLifetimeAudit();
     }
 
-    function logCurrentSoh() {
-      const odo = prompt("Enter current vehicle odometer (km):", "5400");
-      if (!odo) return;
-      const soh = document.getElementById('diag-soh-input').value;
-      const pack = getEffectivePack().toFixed(2);
-      const delta = document.getElementById('diag-cell-delta').value;
+    function runLifetimeAudit() {
+      const nominalPack = parseFloat(document.getElementById('cfg-pack').value) || 38.0;
+      const soh = parseFloat(document.getElementById('diag-soh-input').value) || 100.0;
+      const effectivePack = nominalPack * (soh / 100.0);
+      const odo = parseFloat(document.getElementById('life-odo-input').value) || 5400;
+      const whkm = parseFloat(document.getElementById('life-whkm-input').value) || 125;
+      const ratedCycles = parseFloat(document.getElementById('life-cycles-rating').value) || 3000;
+
+      const factoryRange = (nominalPack * 1000.0) / whkm;
+      const currentRange = (effectivePack * 1000.0) / whkm;
+      const rangeLost = Math.max(0, factoryRange - currentRange);
+      const retentionPct = (currentRange / factoryRange) * 100.0;
+
+      const kwhThroughput = (odo * whkm) / 1000.0;
+      const efc = kwhThroughput / nominalPack;
+      const projDistance = Math.round(ratedCycles * (nominalPack * 0.90 * 1000.0 / whkm));
+
+      const curRangeElem = document.getElementById('life-current-range');
+      const rangeSubElem = document.getElementById('life-range-sub');
+      const rangeLostElem = document.getElementById('life-range-lost');
+      const lostSubElem = document.getElementById('life-lost-sub');
+      const efcCyclesElem = document.getElementById('life-efc-cycles');
+      const efcSubElem = document.getElementById('life-efc-sub');
+      const projLifeElem = document.getElementById('life-proj-life');
+      const badgeElem = document.getElementById('life-retention-badge');
+
+      if (curRangeElem) curRangeElem.innerText = `${currentRange.toFixed(1)} km`;
+      if (rangeSubElem) rangeSubElem.innerText = `At ${whkm} Wh/km (${effectivePack.toFixed(2)} kWh usable)`;
+      if (rangeLostElem) {
+        rangeLostElem.innerText = rangeLost > 0 ? `-${rangeLost.toFixed(1)} km` : `-0.0 km`;
+        rangeLostElem.style.color = rangeLost > 15 ? 'var(--warning)' : 'var(--primary)';
+      }
+      if (lostSubElem) lostSubElem.innerText = `${(100 - retentionPct).toFixed(1)}% degradation vs factory`;
+      if (efcCyclesElem) efcCyclesElem.innerText = `${efc.toFixed(1)} EFC`;
+      if (efcSubElem) efcSubElem.innerText = `${Math.round(kwhThroughput).toLocaleString()} kWh throughput`;
+      if (projLifeElem) projLifeElem.innerText = `~${projDistance.toLocaleString('en-IN')} km`;
+      if (badgeElem) {
+        badgeElem.innerText = `${retentionPct.toFixed(1)}% Range Retention`;
+        badgeElem.className = retentionPct >= 95 ? 'badge badge-safe' : (retentionPct >= 85 ? 'badge badge-warn' : 'badge badge-danger');
+      }
+
+      // Render Cruising Speed vs Degradation Matrix Table
+      const speeds = [
+        { name: "70 km/h (Eco Cruise)", wh: 112 },
+        { name: "80 km/h (Standard Dual)", wh: 120 },
+        { name: "85 km/h (Sweet Spot)", wh: 125 },
+        { name: "90 km/h (Active Flow)", wh: 132 },
+        { name: "100 km/h (Expressway)", wh: 152 },
+        { name: "110 km/h (High Drag)", wh: 168 }
+      ];
+
+      const tbody = document.getElementById('life-matrix-tbody');
+      if (tbody) {
+        tbody.innerHTML = speeds.map(s => {
+          const facR = Math.round((nominalPack * 1000.0) / s.wh);
+          const curR = Math.round((effectivePack * 1000.0) / s.wh);
+          const lostR = Math.max(0, facR - curR);
+          const floor80R = Math.round((nominalPack * 0.80 * 1000.0) / s.wh);
+
+          return `
+            <tr>
+              <td><strong>${s.name}</strong></td>
+              <td><span style="color:var(--primary); font-weight:700;">${s.wh}</span> Wh/km</td>
+              <td style="color:var(--text-muted);">${facR} km</td>
+              <td><strong style="color:var(--success); font-size:0.95rem;">${curR} km</strong></td>
+              <td style="color:${lostR > 0 ? 'var(--warning)' : 'var(--text-muted)'}; font-weight:700;">${lostR > 0 ? '-' + lostR + ' km' : '0 km'}</td>
+              <td style="color:var(--text-muted);">${floor80R} km</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    let defaultLifetimeLogs = [
+      { id: 1, date: "2026-08-10", odo: 10, soh: 100.0, pack: 38.00, range: 304.0, lost: 0.0, efc: 0.0, delta: 10 },
+      { id: 2, date: "2026-10-31", odo: 5400, soh: 100.0, pack: 38.00, range: 304.0, lost: 0.0, efc: 17.8, delta: 12 }
+    ];
+
+    function getLifetimeLogs() {
+      const stored = localStorage.getItem('ev_lifetime_range_logbook_v19');
+      if (stored) {
+        try { return JSON.parse(stored); } catch(e) {}
+      }
+      return defaultLifetimeLogs;
+    }
+
+    function saveLifetimeLogs(logs) {
+      localStorage.setItem('ev_lifetime_range_logbook_v19', JSON.stringify(logs));
+    }
+
+    function logLifetimeMilestone() {
+      const currentOdo = parseFloat(document.getElementById('life-odo-input').value) || 5400;
+      const currentSoh = parseFloat(document.getElementById('diag-soh-input').value) || 100.0;
+      const deltaVal = parseFloat(document.getElementById('diag-cell-delta').value) || 12;
+
+      const odoStr = prompt("Confirm current odometer reading (km):", currentOdo);
+      if (!odoStr) return;
+      const odo = parseFloat(odoStr) || currentOdo;
+
+      const sohStr = prompt("Confirm battery SOH (%):", currentSoh);
+      if (!sohStr) return;
+      const soh = parseFloat(sohStr) || currentSoh;
+
+      const nominalPack = parseFloat(document.getElementById('cfg-pack').value) || 38.0;
+      const effectivePack = nominalPack * (soh / 100.0);
+      const whkm = parseFloat(document.getElementById('life-whkm-input').value) || 125;
+
+      const factoryRange = (nominalPack * 1000.0) / whkm;
+      const currentRange = (effectivePack * 1000.0) / whkm;
+      const rangeLost = Math.max(0, factoryRange - currentRange);
+
+      const kwhThroughput = (odo * whkm) / 1000.0;
+      const efc = kwhThroughput / nominalPack;
 
       const entry = {
+        id: Date.now(),
         date: new Date().toLocaleDateString('en-IN'),
-        odo: odo + " km",
-        soh: soh + "%",
-        pack: pack + " kWh",
-        delta: delta + " mV"
+        odo: odo,
+        soh: soh,
+        pack: parseFloat(effectivePack.toFixed(2)),
+        range: parseFloat(currentRange.toFixed(1)),
+        lost: parseFloat(rangeLost.toFixed(1)),
+        efc: parseFloat(efc.toFixed(1)),
+        delta: deltaVal
       };
 
-      const logs = JSON.parse(localStorage.getItem('ev_soh_logbook') || '[]');
+      const logs = getLifetimeLogs();
       logs.unshift(entry);
-      localStorage.setItem('ev_soh_logbook', JSON.stringify(logs));
+      saveLifetimeLogs(logs);
+
+      renderSohLogs();
+      alert("✅ Lifetime Range & SOH milestone successfully recorded!");
+    }
+
+    function deleteLifetimeRecord(id) {
+      if (!confirm("Are you sure you want to delete this lifetime milestone record?")) return;
+      let logs = getLifetimeLogs();
+      logs = logs.filter(l => l.id !== id);
+      saveLifetimeLogs(logs);
       renderSohLogs();
     }
 
     function renderSohLogs() {
-      const logs = JSON.parse(localStorage.getItem('ev_soh_logbook') || '[]');
+      const logs = getLifetimeLogs();
       const tbody = document.getElementById('soh-log-body');
+      if (!tbody) return;
       if (!logs.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No SOH records logged yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No lifetime range records logged yet.</td></tr>';
         return;
       }
       tbody.innerHTML = logs.map(l => `
         <tr>
-          <td>${l.date}</td>
-          <td>${l.odo}</td>
-          <td style="color:var(--primary); font-weight:700;">${l.soh}</td>
-          <td>${l.pack}</td>
-          <td style="color:var(--success); font-weight:600;">${l.delta}</td>
+          <td><strong>${l.date}</strong></td>
+          <td><strong>${l.odo.toLocaleString()} km</strong></td>
+          <td style="color:var(--primary); font-weight:700;">${l.soh.toFixed(1)}%</td>
+          <td>${l.pack.toFixed(2)} kWh</td>
+          <td><strong style="color:var(--success); font-size:0.95rem;">${l.range.toFixed(1)} km</strong></td>
+          <td style="color:${l.lost > 0 ? 'var(--warning)' : 'var(--text-muted)'}; font-weight:700;">${l.lost > 0 ? '-' + l.lost.toFixed(1) + ' km' : '0 km'}</td>
+          <td>${l.efc.toFixed(1)} EFC</td>
+          <td style="color:var(--text);">${l.delta} mV</td>
+          <td><button class="btn-danger" style="padding:0.2rem 0.5rem;" onclick="deleteLifetimeRecord(${l.id})">Delete</button></td>
         </tr>
       `).join('');
+    }
+
+    function exportLifetimeCSV() {
+      const logs = getLifetimeLogs();
+      if (!logs.length) return alert('No lifetime records to export.');
+      let csv = "Date,Odometer (km),SOH (%),Usable Pack (kWh),100% Real Range at 85 kmh (km),Range Lost to Degradation (km),Equivalent Full Cycles (EFC),Cell Delta (mV)\n";
+      logs.forEach(l => {
+        csv += `"${l.date}","${l.odo}","${l.soh}","${l.pack}","${l.range}","${l.lost}","${l.efc}","${l.delta}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ev_lifetime_range_logbook_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    // =================================================================
+    // DYNAMIC ARRIVAL SOC & 3-TIER CHARGER CONTINGENCY RADAR ENGINE
+    // =================================================================
+    function setQuickWhkm(wh, label) {
+      document.getElementById('quick-pacing-whkm').value = wh;
+      const lbl = document.getElementById('quick-pacing-lbl');
+      if (lbl && label) lbl.innerText = `${label} (${wh} Wh/km)`;
+      document.querySelectorAll('.preset-chip').forEach(c => {
+        if (c.innerText.includes(wh.toString())) c.classList.add('active');
+        else c.classList.remove('active');
+      });
+      runContingencyRadar();
+    }
+
+    function syncQuickOdo(source) {
+      const curr = parseFloat(document.getElementById('quick-curr-odo').value) || 0;
+      let dist = parseFloat(document.getElementById('quick-target-dist').value) || 0;
+      let dest = parseFloat(document.getElementById('quick-dest-odo').value) || 0;
+
+      if (source === 'curr') {
+        document.getElementById('quick-dest-odo').value = curr + dist;
+      } else if (source === 'dist') {
+        document.getElementById('quick-dest-odo').value = curr + dist;
+      } else if (source === 'dest') {
+        dist = Math.max(0, dest - curr);
+        document.getElementById('quick-target-dist').value = dist;
+      }
+      runContingencyRadar();
+    }
+
+    function runContingencyRadar() {
+      const nominalPack = parseFloat(document.getElementById('cfg-pack').value) || 38.0;
+      const soh = parseFloat(document.getElementById('cfg-soh').value) || 100.0;
+      const effectivePack = nominalPack * (soh / 100.0);
+
+      // Section A: Quick En-Route Arrival Forecaster with Elevation Gradient Math
+      const currOdo = parseFloat(document.getElementById('quick-curr-odo') ? document.getElementById('quick-curr-odo').value : 5320) || 0;
+      const targetDist = parseFloat(document.getElementById('quick-target-dist').value) || 0;
+      const startSoc = parseFloat(document.getElementById('quick-start-soc').value) || 85;
+      const pacingWh = parseFloat(document.getElementById('quick-pacing-whkm').value) || 125;
+      const elevM = parseFloat(document.getElementById('quick-elev-m') ? document.getElementById('quick-elev-m').value : 0) || 0;
+
+      const arrivalOdo = currOdo + targetDist;
+      const destOdoInput = document.getElementById('quick-dest-odo');
+      if (destOdoInput && document.activeElement !== destOdoInput) {
+        destOdoInput.value = arrivalOdo;
+      }
+
+      // Gravitational potential energy delta (laden mass ~1,800 kg)
+      let elevKwh = 0;
+      if (elevM > 0) {
+        elevKwh = (elevM / 1000.0) * 5.5; // +5.5 kWh per 1000m climb
+      } else if (elevM < 0) {
+        elevKwh = (elevM / 1000.0) * 3.5; // -3.5 kWh regen per 1000m descent
+      }
+
+      const rollingKwh = (targetDist * pacingWh) / 1000.0;
+      const energyKwh = Math.max(0.1, rollingKwh + elevKwh);
+      const socDrop = (energyKwh / effectivePack) * 100.0;
+      const arrivalSoc = Math.min(100.0, startSoc - socDrop);
+      const kmPer1Pct = pacingWh > 0 ? (effectivePack * 10.0) / pacingWh : 0;
+      const safeKm = arrivalSoc > 15 ? Math.round((arrivalSoc - 15) * kmPer1Pct) : 0;
+      const packShare = (energyKwh / effectivePack) * 100.0;
+
+      const elevText = elevM !== 0 ? ` (${elevM > 0 ? '+' : ''}${elevM}m)` : '';
+      document.getElementById('quick-calc-summary-chip').innerText = `Odo ${currOdo} → ${arrivalOdo} km (+${targetDist} km)${elevText} | ${startSoc}% → ${arrivalSoc.toFixed(1)}%`;
+      
+      const arrSocElem = document.getElementById('quick-res-arrival-soc');
+      if (arrSocElem) {
+        arrSocElem.innerText = `${arrivalSoc.toFixed(1)}%`;
+        if (arrivalSoc >= 20) arrSocElem.style.color = "var(--success)";
+        else if (arrivalSoc >= 15) arrSocElem.style.color = "var(--primary)";
+        else if (arrivalSoc >= 10) arrSocElem.style.color = "var(--warning)";
+        else arrSocElem.style.color = "var(--danger)";
+      }
+
+      const arrOdoElem = document.getElementById('quick-res-arrival-odo');
+      if (arrOdoElem) arrOdoElem.innerText = `${arrivalOdo.toLocaleString()} km`;
+
+      const energySubElem = document.getElementById('quick-res-energy-sub');
+      if (energySubElem) energySubElem.innerText = `Used: ${energyKwh.toFixed(1)} kWh (${packShare.toFixed(1)}% pack)`;
+
+      const elevDropNote = elevM !== 0 ? ` (Roll: ${rollingKwh.toFixed(1)}kwh | Elev: ${elevKwh > 0 ? '+' : ''}${elevKwh.toFixed(1)}kwh)` : '';
+      document.getElementById('quick-res-soc-drop').innerText = `SoC Drop: -${socDrop.toFixed(1)}%${elevDropNote}`;
+      document.getElementById('quick-res-safe-km').innerText = `${safeKm} km buffer`;
+
+      const statusBadge = document.getElementById('quick-res-status-badge');
+      const maxSpeedSub = document.getElementById('quick-res-max-speed-sub');
+
+      // Calculate maximum safe speed / Wh/km to still arrive with >= 15% buffer
+      let maxSafeWh = targetDist > 0 ? ((((startSoc - 15) / 100.0) * effectivePack - elevKwh) * 1000.0) / targetDist : 200;
+      let maxSpeedText = "";
+      if (maxSafeWh >= 165) maxSpeedText = "Safe up to 110+ km/h cruise";
+      else if (maxSafeWh >= 152) maxSpeedText = "Safe up to 100 km/h expressway";
+      else if (maxSafeWh >= 132) maxSpeedText = "Safe up to 90 km/h cruise";
+      else if (maxSafeWh >= 125) maxSpeedText = "Hold steady at 85 km/h sweet spot";
+      else if (maxSafeWh >= 115) maxSpeedText = "Taper speed to 75 km/h Eco (115 Wh)";
+      else maxSpeedText = "🚨 Stop to charge en route!";
+
+      if (arrivalSoc >= 20) {
+        statusBadge.className = "badge badge-safe";
+        statusBadge.innerText = `Optimal Buffer (${arrivalSoc.toFixed(0)}%)`;
+        maxSpeedSub.innerText = maxSpeedText;
+      } else if (arrivalSoc >= 15) {
+        statusBadge.className = "badge badge-safe";
+        statusBadge.innerText = `Target Safe (15-20%)`;
+        maxSpeedSub.innerText = maxSpeedText;
+      } else if (arrivalSoc >= 10) {
+        statusBadge.className = "badge badge-warn";
+        statusBadge.innerText = `Buffer Tight (10-15%)`;
+        maxSpeedSub.innerText = `Taper speed by 10 km/h to conserve`;
+      } else if (arrivalSoc > 0) {
+        statusBadge.className = "badge badge-danger";
+        statusBadge.innerText = `Critical Depletion (<10%)`;
+        maxSpeedSub.innerText = `HVAC cuts off at 10% (Manual rule)!`;
+      } else {
+        statusBadge.className = "badge badge-danger";
+        statusBadge.innerText = `Battery Deficit (${arrivalSoc.toFixed(1)}%)`;
+        maxSpeedSub.innerText = `Unreachable! Requires charging stop`;
+      }
+
+      // Section B: 3-Tier Charger Contingency Radar
+      const pName = document.getElementById('radar-p-name').value || "Primary Charger";
+      const pDist = parseFloat(document.getElementById('radar-p-dist').value) || 155;
+
+      const sName = document.getElementById('radar-s-name').value || "Secondary (Plan-B)";
+      const sDist = parseFloat(document.getElementById('radar-s-dist').value) || 185;
+
+      const tName = document.getElementById('radar-t-name').value || "Tertiary (Plan-C)";
+      const tDist = parseFloat(document.getElementById('radar-t-dist').value) || 215;
+
+      const sDiv = Math.max(0, sDist - pDist);
+      const tDiv = Math.max(0, tDist - pDist);
+
+      function calcArrival(dist, wh) {
+        const e = (dist * wh) / 1000.0;
+        return startSoc - ((e / effectivePack) * 100.0);
+      }
+
+      const pSocPacing = calcArrival(pDist, pacingWh);
+      const sSocPacing = calcArrival(sDist, pacingWh);
+      const tSocPacing = calcArrival(tDist, pacingWh);
+
+      document.getElementById('radar-p-soc').innerText = `${pSocPacing.toFixed(1)}%`;
+      document.getElementById('radar-s-soc').innerText = `${sSocPacing.toFixed(1)}% (+${sDiv}km)`;
+      document.getElementById('radar-t-soc').innerText = `${tSocPacing.toFixed(1)}% (+${tDiv}km)`;
+
+      function getBadgeHtml(soc) {
+        if (soc >= 15) return `<span class="badge badge-safe">✅ Reachable (${soc.toFixed(1)}%)</span>`;
+        if (soc >= 5) return `<span class="badge badge-warn">⚠️ Buffer Tight (${soc.toFixed(1)}%)</span>`;
+        if (soc > 0) return `<span class="badge badge-danger">🚨 Critical (<5%: ${soc.toFixed(1)}%)</span>`;
+        return `<span class="badge badge-danger">❌ Deficit (${soc.toFixed(1)}%)</span>`;
+      }
+
+      document.getElementById('radar-p-badge').innerHTML = getBadgeHtml(pSocPacing);
+      document.getElementById('radar-s-badge').innerHTML = getBadgeHtml(sSocPacing);
+      document.getElementById('radar-t-badge').innerHTML = getBadgeHtml(tSocPacing);
+
+      // Render Matrix Table Across 4 Cruising Profiles
+      const profiles = [
+        { name: "75 km/h (Eco)", wh: 115 },
+        { name: "85 km/h (Optimal)", wh: 125 },
+        { name: "90 km/h (Standard)", wh: 132 },
+        { name: "100 km/h (Expressway)", wh: 152 }
+      ];
+
+      const waypoints = [
+        { tier: "1️⃣ Primary", name: pName, dist: pDist, div: "0 km" },
+        { tier: "2️⃣ Secondary", name: sName, dist: sDist, div: `+${sDiv} km` },
+        { tier: "3️⃣ Tertiary", name: tName, dist: tDist, div: `+${tDiv} km` }
+      ];
+
+      const tbody = document.getElementById('radar-matrix-tbody');
+      if (tbody) {
+        tbody.innerHTML = waypoints.map(w => {
+          const soc75 = calcArrival(w.dist, 115);
+          const soc85 = calcArrival(w.dist, 125);
+          const soc90 = calcArrival(w.dist, 132);
+          const soc100 = calcArrival(w.dist, 152);
+
+          let verdict = "";
+          if (soc100 >= 15) {
+            verdict = `<span style="color:var(--success); font-weight:700;">✅ Triple Safe</span>`;
+          } else if (soc85 >= 15) {
+            verdict = `<span style="color:var(--primary); font-weight:700;">🛡️ Safe @ 85 km/h</span>`;
+          } else if (soc75 >= 15) {
+            verdict = `<span style="color:var(--warning); font-weight:700;">⚠️ Safe @ 75 km/h Eco</span>`;
+          } else {
+            verdict = `<span style="color:var(--danger); font-weight:700;">🚨 Taper / Risky</span>`;
+          }
+
+          function formatSocCell(soc) {
+            const col = soc >= 15 ? 'var(--success)' : (soc >= 5 ? 'var(--warning)' : 'var(--danger)');
+            return `<strong style="color:${col};">${soc.toFixed(1)}%</strong>`;
+          }
+
+          return `
+            <tr>
+              <td><strong>${w.tier}</strong><br><span style="font-size:0.7rem; color:var(--text-muted);">${w.name}</span></td>
+              <td><strong>${w.dist} km</strong></td>
+              <td style="color:var(--solar); font-weight:600;">${w.div}</td>
+              <td>${formatSocCell(soc75)}</td>
+              <td>${formatSocCell(soc85)}</td>
+              <td>${formatSocCell(soc90)}</td>
+              <td>${formatSocCell(soc100)}</td>
+              <td>${verdict}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Dynamic Driver Guidance Advice Box
+      const tSoc100 = calcArrival(tDist, 152);
+      const tSoc85 = calcArrival(tDist, 125);
+      const tSoc75 = calcArrival(tDist, 115);
+      const guidanceBox = document.getElementById('radar-guidance-box');
+
+      if (guidanceBox) {
+        if (tSoc100 >= 15) {
+          guidanceBox.innerHTML = `
+            <div style="color:var(--success); font-weight:700; margin-bottom:0.25rem;">
+              ✅ Full 3-Tier Highway Coverage:
+            </div>
+            All 3 charging waypoints (Primary, Secondary, and Tertiary) are reachable with over 15% safety buffer even at 100 km/h expressway cruising (${tSoc100.toFixed(1)}% at Tertiary).
+          `;
+        } else if (tSoc85 >= 15) {
+          guidanceBox.innerHTML = `
+            <div style="color:var(--primary); font-weight:700; margin-bottom:0.25rem;">
+              💡 Speed Modulation Protocol (Plan-C Redundancy):
+            </div>
+            At 100 km/h, the Tertiary charger yields only <strong>${tSoc100.toFixed(1)}%</strong>. If you arrive at the Primary/Secondary charger and find it faulted, <strong>ease your speed to 85 km/h (125 Wh/km)</strong>. This instantly boosts your Tertiary arrival battery to <strong style="color:var(--success);">${tSoc85.toFixed(1)}%</strong>!
+          `;
+        } else if (tSoc75 >= 15) {
+          guidanceBox.innerHTML = `
+            <div style="color:var(--warning); font-weight:700; margin-bottom:0.25rem;">
+              ⚠️ Eco Throttle Contingency Protocol:
+            </div>
+            Reaching the Tertiary backup (${tDist} km) requires adopting the <strong>75 km/h Eco profile (115 Wh/km)</strong> to guarantee arrival with <strong style="color:var(--warning);">${tSoc75.toFixed(1)}%</strong> reserve. At higher speeds, the Tertiary stop will be below safety buffer.
+          `;
+        } else {
+          guidanceBox.innerHTML = `
+            <div style="color:var(--danger); font-weight:700; margin-bottom:0.25rem;">
+              🚨 Strict Two-Tier Corridor:
+            </div>
+            The Tertiary charger (${tDist} km) exceeds your single-leg safe range from ${startSoc}% SoC. Ensure you charge at either the Primary (${pName}) or Secondary (${sName}) station.
+          `;
+        }
+      }
+    }
+
+    // ==========================================
+    // MODULE 1: OFFICIAL MG SERVICE COUNTDOWN
+    // ==========================================
+    function auditServiceCountdown() {
+      const currentOdo = parseFloat(document.getElementById('cfg-start-odo') ? document.getElementById('cfg-start-odo').value : 5320) || 5320;
+      
+      const srvCurrElem = document.getElementById('srv-curr-odo');
+      if (srvCurrElem) srvCurrElem.innerText = `${currentOdo.toLocaleString()} km`;
+
+      const srvKmElem = document.getElementById('srv-km-remaining');
+      const badge = document.getElementById('service-countdown-badge');
+
+      if (currentOdo <= 5500) {
+        // Within 1st service (3 Months / 5,000 km ± 500 km)
+        const rem5k = 5000 - currentOdo;
+        if (srvKmElem) srvKmElem.innerText = `15,000 km (9,680 km to go)`;
+        if (badge) {
+          badge.className = "badge badge-safe";
+          badge.innerText = `1st 5,000 km Check / Next: 15,000 km`;
+        }
+      } else {
+        const nextTarget = 15000;
+        const remainingKm = Math.max(0, nextTarget - currentOdo);
+        if (srvKmElem) srvKmElem.innerText = `${remainingKm.toLocaleString()} km remaining`;
+        if (badge) {
+          if (remainingKm <= 500) {
+            badge.className = "badge badge-warn";
+            badge.innerText = `2nd Service DUE: ${remainingKm} km left (Grace: ±500 km)`;
+          } else {
+            badge.className = "badge badge-safe";
+            badge.innerText = `Next: 1 Yr / 15,000 km (${remainingKm.toLocaleString()} km to go)`;
+          }
+        }
+      }
+    }
+
+    // ==========================================
+    // MODULE 2 & 3: BMS EQUALIZATION & THERMAL SOAK
+    // ==========================================
+    function auditBmsEqualization() {
+      const dcConsecutive = parseInt(document.getElementById('bms-dc-consecutive').value) || 0;
+      const daysSinceAc = parseInt(document.getElementById('bms-days-since-ac').value) || 0;
+      const badge = document.getElementById('bms-equalize-badge');
+      const box = document.getElementById('bms-equalize-alert-box');
+
+      const isDue = (dcConsecutive >= 4) || (daysSinceAc >= 15);
+
+      if (isDue) {
+        if (badge) {
+          badge.className = "badge badge-warn";
+          badge.innerText = `Equalization DUE (${dcConsecutive}/4 DC | ${daysSinceAc}/15 Days)`;
+        }
+        if (box) {
+          box.innerHTML = `
+            <div style="background:rgba(245, 158, 11, 0.15); border:1px solid var(--warning); padding:0.5rem 0.75rem; border-radius:0.35rem; color:var(--warning);">
+              <strong>⚠️ Factory Equalization Recommended (Section 3.2.6):</strong><br>
+              You have logged ${dcConsecutive} consecutive DC charges and ${daysSinceAc} days since your last full AC soak. Connect to your 3.3 kW home charger overnight to 100% SoC and leave plugged in for 30–60 mins post-100% to allow passive bleed resistors to balance cell groups and reset Coulomb counting drift.
+            </div>
+          `;
+        }
+      } else {
+        if (badge) {
+          badge.className = "badge badge-safe";
+          badge.innerText = `Equalization Compliant (${dcConsecutive}/4 DC | ${daysSinceAc}/15 Days)`;
+        }
+        if (box) {
+          box.innerHTML = `
+            <div style="background:rgba(34, 197, 94, 0.15); border:1px solid var(--success); padding:0.45rem 0.65rem; border-radius:0.35rem; color:var(--success);">
+              ✅ LFP Cell Balancing Schedule is compliant with MG factory warranty mandates (Section 3.2.6).
+            </div>
+          `;
+        }
+      }
+    }
+
+    function auditThermalSoak() {
+      const stint = parseInt(document.getElementById('thermal-dc-stint-count').value) || 1;
+      const box = document.getElementById('thermal-soak-advisory-box');
+      if (!box) return;
+
+      if (stint === 1) {
+        box.innerHTML = `
+          <div style="background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); padding:0.45rem 0.65rem; border-radius:0.35rem; color:var(--primary);">
+            ℹ️ <strong>1st DC Stint:</strong> Pack internal resistance is optimal. Expect peak acceptance up to the 45 kW Excite ceiling (observed peak 34.7 kW).
+          </div>
+        `;
+      } else if (stint === 2) {
+        box.innerHTML = `
+          <div style="background:rgba(34, 197, 94, 0.08); border:1px solid rgba(34, 197, 94, 0.25); padding:0.45rem 0.65rem; border-radius:0.35rem; color:var(--success);">
+            ℹ️ <strong>2nd DC Stint:</strong> Cell temperature is elevated (~35-38&deg;C). Normal charging curve maintained; battery cooling fan active.
+          </div>
+        `;
+      } else {
+        box.innerHTML = `
+          <div style="background:rgba(245, 158, 11, 0.15); border:1px solid var(--warning); padding:0.5rem 0.75rem; border-radius:0.35rem; color:var(--warning);">
+            ⚠️ <strong>Thermal Soak Alert (3rd+ Fast Charge):</strong> High pack temperature may trigger BMS thermal derating (charging speed may taper below 25 kW). Cruising at 80–85 km/h rather than 100+ km/h between stops provides natural aerodynamic airflow cooling to the battery underbody.
+          </div>
+        `;
+      }
+    }
+
+    // ==========================================
+    // MODULE 4 & 5: TIRE MATRIX & 12V PARASITIC
+    // ==========================================
+    function auditTireMatrix() {
+      const fl = parseFloat(document.getElementById('tread-fl').value) || 7.2;
+      const fr = parseFloat(document.getElementById('tread-fr').value) || 7.2;
+      const rl = parseFloat(document.getElementById('tread-rl').value) || 7.2;
+      const rr = parseFloat(document.getElementById('tread-rr').value) || 7.2;
+      const temp = parseFloat(document.getElementById('ambient-temp-psi').value) || 26;
+      const lastRot = parseFloat(document.getElementById('last-rotation-odo').value) || 0;
+      const currentOdo = parseFloat(document.getElementById('cfg-start-odo') ? document.getElementById('cfg-start-odo').value : 5320) || 5320;
+
+      // Temp compensation: 34 PSI @ 25°C base. (+1 PSI per 5°C rise)
+      const compPsi = 34.0 + ((temp - 25.0) * 0.18);
+      document.getElementById('tire-target-psi').innerText = `${compPsi.toFixed(1)} PSI`;
+
+      const fAvg = (fl + fr) / 2.0;
+      const rAvg = (rl + rr) / 2.0;
+      const delta = Math.abs(fAvg - rAvg);
+      document.getElementById('tire-tread-delta').innerText = `${delta.toFixed(1)} mm`;
+
+      const kmSinceRot = Math.max(0, currentOdo - lastRot);
+      const rotRemaining = Math.max(0, 8000 - kmSinceRot);
+      document.getElementById('tire-rotation-sub').innerText = `${rotRemaining.toLocaleString()} km remaining`;
+      
+      const badge = document.getElementById('tire-rotation-badge');
+      if (badge) {
+        if (rotRemaining <= 500) {
+          badge.className = "badge badge-warn";
+          badge.innerText = `Rotation DUE (${rotRemaining} km left)`;
+        } else {
+          badge.className = "badge badge-safe";
+          badge.innerText = `Rotation: ${rotRemaining.toLocaleString()} km to go`;
+        }
+      }
+
+      // Wear rate per 10k km
+      const minTread = Math.min(fl, fr, rl, rr);
+      const wornMm = Math.max(0, 7.2 - minTread);
+      const wearRate10k = currentOdo > 0 ? (wornMm / currentOdo) * 10000 : 0;
+      document.getElementById('tire-wear-rate').innerText = `${wearRate10k.toFixed(2)} mm/10k`;
+    }
+
+    function audit12vParasitic() {
+      const volt = parseFloat(document.getElementById('diag-12v-volt').value) || 12.7;
+      const loadType = document.getElementById('aux-12v-load-type').value;
+      const parkingDays = parseFloat(document.getElementById('aux-12v-parking-days').value) || 7;
+
+      const socElem = document.getElementById('aux-12v-soc');
+      let socPct = 100;
+      if (volt >= 12.6) socPct = 100;
+      else if (volt >= 12.4) socPct = 80;
+      else if (volt >= 12.2) socPct = 60;
+      else if (volt >= 12.0) socPct = 40;
+      else socPct = 20;
+
+      if (socElem) socElem.innerText = `${socPct}% (${volt.toFixed(1)}V)`;
+
+      let mA = 25;
+      if (loadType === 'dashcam') mA = 180;
+      else if (loadType === 'high') mA = 300;
+
+      // 45Ah usable capacity to 50% depth of discharge = 22.5 Ah = 22500 mAh
+      const safeHours = 22500 / mA;
+      const safeDays = Math.floor(safeHours / 24);
+      document.getElementById('aux-12v-max-days').innerText = `${safeDays} Days`;
+
+      const adviceBox = document.getElementById('aux-12v-advice-box');
+      if (adviceBox) {
+        if (parkingDays >= safeDays) {
+          adviceBox.innerHTML = `
+            <div style="background:rgba(239, 68, 68, 0.15); border:1px solid var(--danger); padding:0.5rem 0.75rem; border-radius:0.35rem; color:var(--danger);">
+              ⚠️ <strong>12V Battery Drain Warning (Section 3.2.7):</strong> Planned parking (${parkingDays} days) exceeds safe threshold (${safeDays} days) with ${loadType} load. Disconnect 12V negative terminal in the front cowl or schedule remote AC wake-up weekly for 20–30 mins.
+            </div>
+          `;
+        } else {
+          adviceBox.innerHTML = `
+            <div style="background:rgba(34, 197, 94, 0.15); border:1px solid var(--success); padding:0.45rem 0.65rem; border-radius:0.35rem; color:var(--success);">
+              ✅ 12V auxiliary buffer is adequate for ${parkingDays} days of inactive storage.
+            </div>
+          `;
+        }
+      }
+    }
+
+    // ==========================================
+    // MODULE 6: V2L UTILITY CALCULATOR
+    // ==========================================
+    function setV2LWatts(w, label) {
+      document.getElementById('v2l-watts').value = w;
+      document.querySelectorAll('#chip-v2l, .preset-chip').forEach(c => {
+        if (c.innerText.includes(w.toString())) c.classList.add('active');
+        else c.classList.remove('active');
+      });
+      auditV2L();
+    }
+
+    function auditV2L() {
+      const watts = parseFloat(document.getElementById('v2l-watts').value) || 1200;
+      const startSoc = parseFloat(document.getElementById('v2l-soc-in').value) || 80;
+      const cutoff = parseFloat(document.getElementById('v2l-cutoff').value) || 20;
+
+      const effectivePack = getEffectivePack();
+      const deltaSoc = Math.max(0, startSoc - cutoff);
+      const availKwh = (deltaSoc / 100.0) * effectivePack;
+
+      const kwLoad = watts / 1000.0;
+      const runtimeHours = kwLoad > 0 ? (availKwh / kwLoad) : 0;
+      const amps = (watts / 220.0).toFixed(1);
+      const kmEquiv = Math.round((availKwh * 1000.0) / 147.0);
+
+      document.getElementById('v2l-avail-energy').innerText = `${availKwh.toFixed(2)} kWh`;
+      document.getElementById('v2l-soc-span').innerText = `${startSoc}% → ${cutoff}% (${deltaSoc}% pack)`;
+      document.getElementById('v2l-runtime-val').innerText = `${Math.floor(runtimeHours)}h ${Math.round((runtimeHours % 1) * 60)}m`;
+      document.getElementById('v2l-amps-val').innerText = `${amps} Amps (${((watts / 3300.0) * 100).toFixed(0)}% load)`;
+      document.getElementById('v2l-km-equiv').innerText = `${kmEquiv} km`;
+    }
+
+    // ==========================================
+    // MODULE 8: FASTAG CORRIDOR TOLL AUDIT
+    // ==========================================
+    const tollPlazasData = {
+      cbe_blr: [
+        { name: "Kaniyur Toll Plaza", highway: "NH-544", fee: 125 },
+        { name: "Vijayamangalam Toll Plaza", highway: "NH-544", fee: 85 },
+        { name: "Vaiguntham Toll Plaza", highway: "NH-544", fee: 95 },
+        { name: "Omalur Toll Plaza", highway: "NH-44", fee: 100 },
+        { name: "Thoppur Toll Plaza", highway: "NH-44", fee: 110 },
+        { name: "Krishnagiri Toll Plaza", highway: "NH-44", fee: 90 },
+        { name: "Attibele Toll Plaza", highway: "NH-44", fee: 45 }
+      ],
+      cbe_salem: [
+        { name: "Kaniyur Toll Plaza", highway: "NH-544", fee: 125 },
+        { name: "Vijayamangalam Toll Plaza", highway: "NH-544", fee: 85 },
+        { name: "Vaiguntham Toll Plaza", highway: "NH-544", fee: 95 }
+      ],
+      cbe_mudumalai: [
+        { name: "Mettupalayam Toll Check", highway: "SH-15", fee: 60 }
+      ],
+      custom: [
+        { name: "Highway Toll Plaza #1", highway: "NH-544", fee: 100 },
+        { name: "Highway Toll Plaza #2", highway: "NH-44", fee: 100 }
+      ]
+    };
+
+    function auditCorridorTolls() {
+      const corridor = document.getElementById('toll-corridor-select').value;
+      const discount = document.getElementById('toll-return-discount').value === 'yes';
+      const plazas = tollPlazasData[corridor] || tollPlazasData.cbe_blr;
+
+      let oneWayTotal = 0;
+      let roundTripTotal = 0;
+
+      const tbody = document.getElementById('toll-corridor-tbody');
+      if (tbody) {
+        tbody.innerHTML = plazas.map(p => {
+          oneWayTotal += p.fee;
+          const retFee = discount ? Math.round(p.fee * 1.5) : (p.fee * 2);
+          roundTripTotal += retFee;
+          return `
+            <tr>
+              <td><strong>${p.name}</strong></td>
+              <td style="color:var(--text-muted); font-size:0.75rem;">${p.highway}</td>
+              <td style="font-weight:700;">₹${p.fee}</td>
+              <td style="color:var(--solar); font-weight:700;">₹${retFee}</td>
+              <td><span class="badge badge-safe">Active</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('toll-oneway-total').innerText = `₹${oneWayTotal}`;
+      document.getElementById('toll-roundtrip-total').innerText = `₹${roundTripTotal}`;
+
+      const fastagBal = parseFloat(document.getElementById('wal-fastag') ? document.getElementById('wal-fastag').value : 1200) || 1200;
+      const statusElem = document.getElementById('toll-wallet-status');
+      const subElem = document.getElementById('toll-wallet-sub');
+
+      if (fastagBal >= roundTripTotal) {
+        statusElem.innerText = "Adequate";
+        statusElem.style.color = "var(--success)";
+        subElem.innerText = `₹${fastagBal.toLocaleString()} balance covers round trip (₹${roundTripTotal})`;
+      } else {
+        statusElem.innerText = "Recharge Due";
+        statusElem.style.color = "var(--warning)";
+        subElem.innerText = `₹${fastagBal} balance is below round trip toll (₹${roundTripTotal})`;
+      }
+    }
+
+    function applyTollsToActiveTrip() {
+      const corridor = document.getElementById('toll-corridor-select').value;
+      const plazas = tollPlazasData[corridor] || tollPlazasData.cbe_blr;
+      let total = 0;
+      plazas.forEach(p => total += p.fee);
+
+      if (legsData.length > 0) {
+        const perLeg = Math.round(total / legsData.length);
+        legsData.forEach(l => l.tollFee = perLeg);
+        renderLegsUI();
+        calculateTrip();
+        alert(`✅ Fastag tolls (₹${total}) successfully applied across active highway trip legs!`);
+      }
+    }
+
+    // ==========================================
+    // V32 ELEVATION, GOOGLE MAPS & BACKUP ENGINES
+    // ==========================================
+    function setQuickElevPreset(val) {
+      const elevInput = document.getElementById('quick-elev-m');
+      const lbl = document.getElementById('quick-elev-lbl');
+      if (val !== 'custom') {
+        elevInput.value = val;
+        const num = parseInt(val);
+        lbl.innerText = num === 0 ? "Flat Plain / Highway (+0 m)" : `${num > 0 ? '+' : ''}${num} m (${num > 0 ? '+' : ''}${(num * 0.0055).toFixed(1)} kWh)`;
+      } else {
+        lbl.innerText = "Custom Elevation Input";
+      }
+      runContingencyRadar();
+    }
+
+    function launchNativeGoogleMaps() {
+      const origin = encodeURIComponent("Coimbatore, Tamil Nadu");
+      const destination = encodeURIComponent(legsData[legsData.length - 1]?.name.includes("Home") ? "Coimbatore, Tamil Nadu" : "Bengaluru, Karnataka");
+      const waypoints = [];
+      for (let i = 0; i < legsData.length - 1; i++) {
+        if (legsData[i].cpoName) waypoints.push(encodeURIComponent(legsData[i].cpoName));
+      }
+      let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+      if (waypoints.length > 0) url += `&waypoints=${waypoints.join('%7C')}`;
+      window.open(url, '_blank');
+    }
+
+    function updateMapEmbedRoute(query) {
+      const iframe = document.getElementById('gmaps-embed-frame');
+      if (iframe) {
+        iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+      }
+    }
+
+    function auditBackupStats() {
+      const trips = getLifetimeTrips();
+      const maint = getMaintLogs();
+      const soh = getLifetimeLogs();
+      const crossings = parseInt(document.getElementById('pass-crossings-used')?.value || 18);
+
+      const tElem = document.getElementById('backup-trips-count');
+      if (tElem) tElem.innerText = `${trips.length} Trips`;
+      const mElem = document.getElementById('backup-maint-count');
+      if (mElem) mElem.innerText = `${maint.length} Records`;
+      const sElem = document.getElementById('backup-soh-count');
+      if (sElem) sElem.innerText = `${soh.length} Milestones`;
+      const pElem = document.getElementById('backup-pass-status');
+      if (pElem) pElem.innerText = `${200 - crossings} Left (${crossings}/200)`;
+    }
+
+    function generateBackupPayload() {
+      return {
+        app: "MG Windsor EV Master Command Suite",
+        version: "v32",
+        exportTimestamp: new Date().toISOString(),
+        vehicle: "MG Windsor EV Excite (38 kWh LFP)",
+        currentOdo: parseFloat(document.getElementById('cfg-start-odo')?.value || 5320),
+        lifetimeTrips: getLifetimeTrips(),
+        maintenanceLogs: getMaintLogs(),
+        sohMilestones: getLifetimeLogs(),
+        tripHistory: JSON.parse(localStorage.getItem('ev_dynamic_trips') || '[]'),
+        annualPass: {
+          crossingsUsed: parseInt(document.getElementById('pass-crossings-used')?.value || 18),
+          annualFee: parseFloat(document.getElementById('tco-pass-fee')?.value || 3075),
+          mode: document.getElementById('toll-mode-select')?.value || 'pass_200'
+        },
+        config: {
+          startOdo: parseFloat(document.getElementById('cfg-start-odo')?.value || 5320),
+          nominalPack: parseFloat(document.getElementById('cfg-pack')?.value || 38.0),
+          soh: parseFloat(document.getElementById('cfg-soh')?.value || 100.0)
+        }
+      };
+    }
+
+    function exportFullJSONBackup() {
+      const payload = generateBackupPayload();
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `mg_windsor_ev_v32_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    }
+
+    function copyBackupJSONToClipboard() {
+      const payload = generateBackupPayload();
+      navigator.clipboard.writeText(JSON.stringify(payload)).then(() => {
+        alert("✅ Full EV Command Center JSON copied to clipboard!");
+      }).catch(() => {
+        alert("Copy failed. Please use the 'Export JSON' file download button.");
+      });
+    }
+
+    function applyRestoredPayload(data) {
+      if (!data || (!data.lifetimeTrips && !data.maintenanceLogs)) {
+        return alert("❌ Invalid backup file: Missing required EV datasets.");
+      }
+
+      if (data.lifetimeTrips) saveLifetimeTrips(data.lifetimeTrips);
+      if (data.maintenanceLogs) saveMaintLogs(data.maintenanceLogs);
+      if (data.sohMilestones) saveLifetimeLogs(data.sohMilestones);
+      if (data.tripHistory) localStorage.setItem('ev_dynamic_trips', JSON.stringify(data.tripHistory));
+
+      if (data.annualPass) {
+        const passInput = document.getElementById('pass-crossings-used');
+        if (passInput) passInput.value = data.annualPass.crossingsUsed || 18;
+        const modeSelect = document.getElementById('toll-mode-select');
+        if (modeSelect) modeSelect.value = data.annualPass.mode || 'pass_200';
+        const tcoFee = document.getElementById('tco-pass-fee');
+        if (tcoFee) tcoFee.value = data.annualPass.annualFee || 3075;
+      }
+
+      if (data.config) {
+        if (data.config.startOdo) document.getElementById('cfg-start-odo').value = data.config.startOdo;
+        if (data.config.soh) document.getElementById('cfg-soh').value = data.config.soh;
+      }
+
+      // Refresh all application views
+      renderLifetimeTripsLedger();
+      renderMaintenanceTab();
+      renderSohLogs();
+      calculateTrip();
+      runTcoAudit();
+      auditAnnualPass();
+      auditBackupStats();
+
+      alert(`✅ Database successfully restored! Loaded ${data.lifetimeTrips ? data.lifetimeTrips.length : 0} trips and ${data.maintenanceLogs ? data.maintenanceLogs.length : 0} maintenance records.`);
+    }
+
+    function handleBackupFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          applyRestoredPayload(parsed);
+        } catch(err) {
+          alert("❌ Failed to parse JSON file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function restoreFromPastedJSON() {
+      const text = document.getElementById('backup-paste-area').value.trim();
+      if (!text) return alert("Please paste backup JSON data into the text area first.");
+      try {
+        const parsed = JSON.parse(text);
+        applyRestoredPayload(parsed);
+      } catch(err) {
+        alert("❌ Invalid JSON string: " + err.message);
+      }
     }
 
     function toggleHUD(show) {
@@ -2801,7 +4912,734 @@
       document.getElementById('hud-content').innerHTML = html;
     }
 
-    function saveToHistory() {
+    
+// ==========================================
+    // ==========================================
+    // LIFETIME TRIPS & CUMULATIVE KM LEDGER (v27 EXECUTIVE TELEMETRY)
+    // ==========================================
+    let defaultLifetimeTrips = [
+      {
+            "id": "01",
+            "date": "2026-08-15",
+            "name": "Historical Baseline Logs",
+            "startOdo": 1828,
+            "endOdo": 4429,
+            "dist": 2601,
+            "startSoc": "Various",
+            "endSoc": "Various",
+            "socDelta": "-",
+            "whkm": 145.1,
+            "kmPerPct": 2.62,
+            "economy": 6.89,
+            "homeKm": 2601,
+            "homePackKwh": 377.51,
+            "homeGridUnits": 428.99,
+            "homeCost": 3604,
+            "homeHours": 130.0,
+            "dcKm": 0,
+            "dcPackKwh": 0.0,
+            "dcDispenserUnits": 0.0,
+            "dcCost": 0,
+            "dcHours": 0.0,
+            "driverCost": 0,
+            "tollCost": 450,
+            "conditions": "Composite baseline across initial multi-trip runs"
+      },
+      {
+            "id": "02",
+            "date": "2026-09-08",
+            "name": "Trip 1: Outbound Highway Leg",
+            "startOdo": 4429,
+            "endOdo": 4601,
+            "dist": 172,
+            "startSoc": "100%",
+            "endSoc": "35%",
+            "socDelta": "-65%",
+            "whkm": 143.6,
+            "kmPerPct": 2.65,
+            "economy": 6.96,
+            "homeKm": 172,
+            "homePackKwh": 24.7,
+            "homeGridUnits": 28.07,
+            "homeCost": 236,
+            "homeHours": 8.5,
+            "dcKm": 0,
+            "dcPackKwh": 0.0,
+            "dcDispenserUnits": 0.0,
+            "dcCost": 0,
+            "dcHours": 0.0,
+            "driverCost": 500,
+            "tollCost": 185,
+            "conditions": "Steady 75\u201380 km/h cruising, dry tarmac"
+      },
+      {
+            "id": "04",
+            "date": "2026-09-08",
+            "name": "Trip 1: Heavy Monsoon Rain Stint",
+            "startOdo": 4601,
+            "endOdo": 4687,
+            "dist": 86,
+            "startSoc": "90%",
+            "endSoc": "44%",
+            "socDelta": "-46%",
+            "whkm": 203.3,
+            "kmPerPct": 1.87,
+            "economy": 4.92,
+            "homeKm": 0,
+            "homePackKwh": 0.0,
+            "homeGridUnits": 0.0,
+            "homeCost": 0,
+            "homeHours": 0.0,
+            "dcKm": 86,
+            "dcPackKwh": 17.48,
+            "dcDispenserUnits": 17.48,
+            "dcCost": 392,
+            "dcHours": 0.58,
+            "driverCost": 300,
+            "tollCost": 95,
+            "conditions": "Standing water, defogger on, hydrodynamic drag"
+      },
+      {
+            "id": "06",
+            "date": "2026-09-09",
+            "name": "Trip 1: Return Leg to Base",
+            "startOdo": 4687,
+            "endOdo": 4834,
+            "dist": 147,
+            "startSoc": "90%",
+            "endSoc": "34%",
+            "socDelta": "-56%",
+            "whkm": 144.8,
+            "kmPerPct": 2.62,
+            "economy": 6.91,
+            "homeKm": 0,
+            "homePackKwh": 0.0,
+            "homeGridUnits": 0.0,
+            "homeCost": 0,
+            "homeHours": 0.0,
+            "dcKm": 147,
+            "dcPackKwh": 21.28,
+            "dcDispenserUnits": 21.28,
+            "dcCost": 477,
+            "dcHours": 0.71,
+            "driverCost": 450,
+            "tollCost": 185,
+            "conditions": "Rain subsided, smooth evening cruise"
+      },
+      {
+            "id": "08",
+            "date": "2026-09-18",
+            "name": "Urban Stint: Post-AC City Commute",
+            "startOdo": 4834,
+            "endOdo": 4880,
+            "dist": 46,
+            "startSoc": "100%",
+            "endSoc": "83%",
+            "socDelta": "-17%",
+            "whkm": 140.4,
+            "kmPerPct": 2.71,
+            "economy": 7.12,
+            "homeKm": 46,
+            "homePackKwh": 6.46,
+            "homeGridUnits": 7.34,
+            "homeCost": 62,
+            "homeHours": 2.2,
+            "dcKm": 0,
+            "dcPackKwh": 0.0,
+            "dcDispenserUnits": 0.0,
+            "dcCost": 0,
+            "dcHours": 0.0,
+            "driverCost": 0,
+            "tollCost": 0,
+            "conditions": "Mild city driving post cell-balancing"
+      },
+      {
+            "id": "09",
+            "date": "2026-09-22",
+            "name": "Trip 2: Outbound Highway Leg",
+            "startOdo": 4880,
+            "endOdo": 5028,
+            "dist": 148,
+            "startSoc": "83%",
+            "endSoc": "23%",
+            "socDelta": "-60%",
+            "whkm": 154.1,
+            "kmPerPct": 2.47,
+            "economy": 6.49,
+            "homeKm": 148,
+            "homePackKwh": 22.8,
+            "homeGridUnits": 25.91,
+            "homeCost": 218,
+            "homeHours": 7.9,
+            "dcKm": 0,
+            "dcPackKwh": 0.0,
+            "dcDispenserUnits": 0.0,
+            "dcCost": 0,
+            "dcHours": 0.0,
+            "driverCost": 450,
+            "tollCost": 195,
+            "conditions": "Daytime highway, AC active, 80\u201385 km/h"
+      },
+      {
+            "id": "11",
+            "date": "2026-09-22",
+            "name": "Trip 2: Midday Urban Traffic Crawl",
+            "startOdo": 5028,
+            "endOdo": 5083,
+            "dist": 55,
+            "startSoc": "90%",
+            "endSoc": "64%",
+            "socDelta": "-26%",
+            "whkm": 179.6,
+            "kmPerPct": 2.12,
+            "economy": 5.57,
+            "homeKm": 0,
+            "homePackKwh": 0.0,
+            "homeGridUnits": 0.0,
+            "homeCost": 0,
+            "homeHours": 0.0,
+            "dcKm": 55,
+            "dcPackKwh": 9.88,
+            "dcDispenserUnits": 9.88,
+            "dcCost": 222,
+            "dcHours": 0.28,
+            "driverCost": 200,
+            "tollCost": 0,
+            "conditions": "32\u00b0C ambient heat, stop-and-go traffic"
+      },
+      {
+            "id": "12",
+            "date": "2026-09-22",
+            "name": "Trip 2: Cool Night Highway Stint",
+            "startOdo": 5083,
+            "endOdo": 5172,
+            "dist": 89,
+            "startSoc": "64%",
+            "endSoc": "34%",
+            "socDelta": "-30%",
+            "whkm": 128.1,
+            "kmPerPct": 2.97,
+            "economy": 7.81,
+            "homeKm": 0,
+            "homePackKwh": 0.0,
+            "homeGridUnits": 0.0,
+            "homeCost": 0,
+            "homeHours": 0.0,
+            "dcKm": 89,
+            "dcPackKwh": 11.4,
+            "dcDispenserUnits": 11.4,
+            "dcCost": 256,
+            "dcHours": 0.33,
+            "driverCost": 300,
+            "tollCost": 110,
+            "conditions": "26\u00b0C night air, smooth road, minimal AC"
+      },
+      {
+            "id": "14",
+            "date": "2026-09-23",
+            "name": "Trip 2: Return Highway Leg",
+            "startOdo": 5172,
+            "endOdo": 5320,
+            "dist": 148,
+            "startSoc": "85%",
+            "endSoc": "28%",
+            "socDelta": "-57%",
+            "whkm": 146.4,
+            "kmPerPct": 2.6,
+            "economy": 6.83,
+            "homeKm": 0,
+            "homePackKwh": 0.0,
+            "homeGridUnits": 0.0,
+            "homeCost": 0,
+            "homeHours": 0.0,
+            "dcKm": 148,
+            "dcPackKwh": 21.66,
+            "dcDispenserUnits": 21.66,
+            "dcCost": 486,
+            "dcHours": 0.63,
+            "driverCost": 450,
+            "tollCost": 195,
+            "conditions": "Night cruising, light traffic back home"
+      }
+];
+
+    function getLifetimeTrips() {
+      const stored = localStorage.getItem('ev_master_lifetime_trips_v32');
+      if (stored) {
+        try { return JSON.parse(stored); } catch(e) {}
+      }
+      return defaultLifetimeTrips;
+    }
+
+    function saveLifetimeTrips(trips) {
+      localStorage.setItem('ev_master_lifetime_trips_v32', JSON.stringify(trips));
+    }
+
+    function resetTripsToDefaults() {
+      if (!confirm("Reset lifetime trips ledger to verified 3,492 km executive telemetry?")) return;
+      localStorage.removeItem('ev_master_lifetime_trips_v32');
+      renderLifetimeTripsLedger();
+      alert("Ledger restored to verified 3,492 km executive telemetry baseline.");
+    }
+
+    function autoCalcTripFormDist() {
+      const s = parseFloat(document.getElementById('trip-input-start-odo').value) || 0;
+      const e = parseFloat(document.getElementById('trip-input-end-odo').value) || 0;
+      const d = Math.max(0, e - s);
+      document.getElementById('trip-input-dist').value = d;
+    }
+
+    function autoCalcTripFormOdo() {
+      const s = parseFloat(document.getElementById('trip-input-start-odo').value) || 0;
+      const d = parseFloat(document.getElementById('trip-input-dist').value) || 0;
+      document.getElementById('trip-input-end-odo').value = s + d;
+    }
+
+    function addManualTripToLedger() {
+      const dateVal = document.getElementById('trip-input-date').value || new Date().toISOString().slice(0, 10);
+      const nameVal = document.getElementById('trip-input-name').value || "Highway Journey";
+      const startOdo = parseFloat(document.getElementById('trip-input-start-odo').value) || 0;
+      const endOdo = parseFloat(document.getElementById('trip-input-end-odo').value) || 0;
+      const distVal = Math.max(0, endOdo - startOdo);
+      const whkmVal = parseFloat(document.getElementById('trip-input-whkm').value) || 125;
+      const energyCostVal = parseFloat(document.getElementById('trip-input-energy-cost').value) || 0;
+      const driverCostVal = parseFloat(document.getElementById('trip-input-driver-cost').value) || 0;
+      const tollCostVal = parseFloat(document.getElementById('trip-input-toll-cost').value) || 0;
+
+      if (distVal <= 0) return alert("Trip distance must be greater than 0 km.");
+
+      // Split assumption if not logged leg-by-leg:
+      // If trip <= 220 km, assume 100% Home AC. Otherwise assume ~50% Home AC / 50% DC.
+      let homeKm = distVal;
+      let dcKm = 0;
+      let homeCost = energyCostVal;
+      let dcCost = 0;
+
+      if (distVal > 220) {
+        homeKm = 200;
+        dcKm = distVal - homeKm;
+        const totalEnergyKwh = (distVal * whkmVal) / 1000.0;
+        const homeKwh = (homeKm * whkmVal) / 1000.0;
+        const dcKwh = totalEnergyKwh - homeKwh;
+        homeCost = Math.round(homeKwh * 9.55);
+        dcCost = Math.max(0, energyCostVal - homeCost);
+      }
+
+      const totalEnergy = (distVal * whkmVal) / 1000.0;
+      const homePackKwh = (homeKm * whkmVal) / 1000.0;
+      const dcPackKwh = (dcKm * whkmVal) / 1000.0;
+      const homeGridUnits = parseFloat((homePackKwh / 0.88).toFixed(2));
+      const dcDispenserUnits = parseFloat(dcPackKwh.toFixed(2));
+
+      const newTrip = {
+        id: Date.now(),
+        date: dateVal,
+        name: nameVal,
+        startOdo: startOdo,
+        endOdo: endOdo,
+        dist: distVal,
+        whkm: whkmVal,
+        homeKm: homeKm,
+        homePackKwh: parseFloat(homePackKwh.toFixed(2)),
+        homeGridUnits: homeGridUnits,
+        homeCost: homeCost,
+        dcKm: dcKm,
+        dcPackKwh: parseFloat(dcPackKwh.toFixed(2)),
+        dcDispenserUnits: dcDispenserUnits,
+        dcCost: dcCost,
+        driverCost: driverCostVal,
+        tollCost: tollCostVal
+      };
+
+      const trips = getLifetimeTrips();
+      trips.push(newTrip);
+      saveLifetimeTrips(trips);
+
+      renderLifetimeTripsLedger();
+      alert(`✅ Trip "${nameVal}" (${distVal} km) added to Lifetime Ledger with Home AC & DC split!`);
+    }
+
+    function saveActiveRouteToLifetimeLedger() {
+      const startOdo = legsData[0].startOdo;
+      const endOdo = legsData[legsData.length - 1].endOdo;
+      const dist = Math.max(0, endOdo - startOdo);
+      const whkmVal = parseFloat(document.getElementById('tot-whkm').innerText) || 136;
+      
+      let tollCost = 0;
+      let homeKm = 0;
+      let homePackKwh = 0;
+      let homeCost = 0;
+      let dcKm = 0;
+      let dcPackKwh = 0;
+      let dcCost = 0;
+
+      const effectivePack = getEffectivePack();
+      const acEff = parseFloat(document.getElementById('cfg-ac-eff').value) || 0.88;
+
+      legsData.forEach((leg, i) => {
+        tollCost += (leg.tollFee || 0);
+        const legEnergy = (leg.dist * leg.whkm) / 1000.0;
+
+        if (i === 0) {
+          // Powered by Home AC initial charge
+          homeKm += leg.dist;
+          homePackKwh += legEnergy;
+          const homeDelivRate = parseFloat(document.getElementById('home-pre-rate') ? document.getElementById('home-pre-rate').innerText.replace(/[^0-9.]/g, '') : 9.55) || 9.55;
+          homeCost += (legEnergy * homeDelivRate);
+        } else {
+          // Powered by DC charger
+          dcKm += leg.dist;
+          dcPackKwh += legEnergy;
+          const prevStop = legsData[i - 1];
+          const prevPlugIn = prevStop.plugInSoc !== null ? prevStop.plugInSoc : 40;
+          const prevUnitsAdded = Math.max(0.1, ((prevStop.plugOutSoc - prevPlugIn) / 100.0) * effectivePack);
+          const prevBase = prevUnitsAdded * prevStop.dcRate;
+          const prevGst = prevStop.gstMode === 'exclusive' ? (prevBase * 0.18) : 0;
+          const prevGross = prevBase + prevGst + (prevStop.miscFee || 0);
+          const prevCb = prevGross * ((prevStop.cashbackMode === '5' ? 5.0 : 0) / 100.0);
+          const prevNet = prevGross - prevCb;
+          const prevNetRate = prevNet / prevUnitsAdded;
+          dcCost += (legEnergy * prevNetRate);
+        }
+      });
+
+      const homeGridUnits = parseFloat((homePackKwh / acEff).toFixed(2));
+      const dcDispenserUnits = parseFloat(dcPackKwh.toFixed(2));
+      const driverInfo = getDriverExpense();
+      const driverCost = driverInfo.total;
+
+      const tripName = `Highway Loop: ${legsData.length} Legs (${legsData[0].dist}km + ${legsData.slice(1).map(l => l.dist + 'km').join(' + ')})`;
+
+      // Calculate home AC hours and DC charge hours for this route
+      const homeChargerKw = parseFloat(document.getElementById('home-charger-kw') ? document.getElementById('home-charger-kw').value : 3.3) || 3.3;
+      const homeHours = parseFloat((homeGridUnits / homeChargerKw).toFixed(1));
+      
+      let dcHours = 0;
+      legsData.forEach((l, i) => {
+        if (!l.isFinal) {
+          dcHours += ((l.chargeMins || 35) / 60.0);
+        }
+      });
+
+      const newTrip = {
+        id: Date.now(),
+        date: new Date().toISOString().slice(0, 10),
+        name: tripName,
+        startOdo: startOdo,
+        endOdo: endOdo,
+        dist: dist,
+        whkm: whkmVal,
+        homeKm: homeKm,
+        homePackKwh: parseFloat(homePackKwh.toFixed(2)),
+        homeGridUnits: homeGridUnits,
+        homeCost: Math.round(homeCost),
+        homeHours: homeHours,
+        dcKm: dcKm,
+        dcPackKwh: parseFloat(dcPackKwh.toFixed(2)),
+        dcDispenserUnits: dcDispenserUnits,
+        dcCost: Math.round(dcCost),
+        dcHours: parseFloat(dcHours.toFixed(1)),
+        driverCost: driverCost,
+        tollCost: tollCost
+      };
+
+      const trips = getLifetimeTrips();
+      trips.push(newTrip);
+      saveLifetimeTrips(trips);
+
+      document.getElementById('cfg-start-odo').value = endOdo;
+      updateInitialOdo();
+      renderLifetimeTripsLedger();
+
+      alert(`✅ Highway Route (${dist} km) successfully logged! Total Lifetime Tracked Distance, Units & Split Rates are now updated.`);
+    }
+
+    function deleteLifetimeTrip(id) {
+      if (!confirm("Are you sure you want to delete this trip from the lifetime ledger?")) return;
+      let trips = getLifetimeTrips();
+      trips = trips.filter(t => t.id !== id);
+      saveLifetimeTrips(trips);
+      renderLifetimeTripsLedger();
+    }
+
+    function renderLifetimeTripsLedger() {
+      const trips = getLifetimeTrips();
+      trips.sort((a, b) => a.startOdo - b.startOdo);
+
+      let totalKm = 0;
+      let totalEnergyKwh = 0;
+      let totalEnergySpend = 0;
+      let totalDriverSpend = 0;
+      let totalTollsSpend = 0;
+      let totalAllIncSpend = 0;
+
+      // Home vs DC accumulators
+      let totalHomeKm = 0;
+      let totalHomePackKwh = 0;
+      let totalHomeGridUnits = 0;
+      let totalHomeCost = 0;
+
+      let totalDcKm = 0;
+      let totalDcPackKwh = 0;
+      let totalDcDispenserUnits = 0;
+      let totalDcCost = 0;
+
+      let minOdo = Infinity;
+      let maxOdo = -Infinity;
+      let runningCumulativeKm = 0;
+
+      const tbody = document.getElementById('ledger-trips-table-body');
+
+      const rowsHtml = trips.map((t, idx) => {
+        const tripDist = t.dist;
+        totalKm += tripDist;
+        runningCumulativeKm += tripDist;
+
+        // Legacy compatibility fallback if home/dc fields are missing
+        const hKm = t.homeKm !== undefined ? t.homeKm : Math.round(t.dist * 0.55);
+        const hCost = t.homeCost !== undefined ? t.homeCost : Math.round((t.energyCost || 0) * 0.35);
+        const hPackKwh = t.homePackKwh !== undefined ? t.homePackKwh : parseFloat(((hKm * t.whkm) / 1000).toFixed(2));
+        const hGridUnits = t.homeGridUnits !== undefined ? t.homeGridUnits : parseFloat((hPackKwh / 0.88).toFixed(2));
+
+        const dKm = t.dcKm !== undefined ? t.dcKm : (t.dist - hKm);
+        const dCost = t.dcCost !== undefined ? t.dcCost : ((t.energyCost || 0) - hCost);
+        const dPackKwh = t.dcPackKwh !== undefined ? t.dcPackKwh : parseFloat(((dKm * t.whkm) / 1000).toFixed(2));
+        const dDispUnits = t.dcDispenserUnits !== undefined ? t.dcDispenserUnits : dPackKwh;
+
+        totalHomeKm += hKm;
+        totalHomePackKwh += hPackKwh;
+        totalHomeGridUnits += hGridUnits;
+        totalHomeCost += hCost;
+
+        totalDcKm += dKm;
+        totalDcPackKwh += dPackKwh;
+        totalDcDispenserUnits += dDispUnits;
+        totalDcCost += dCost;
+
+        const tripEnergyCost = (t.homeCost || 0) + (t.dcCost || 0);
+        const energyKwh = (t.homePackKwh || 0) + (t.dcPackKwh || 0);
+        totalEnergyKwh += energyKwh;
+        totalEnergySpend += tripEnergyCost;
+        totalDriverSpend += (t.driverCost || 0);
+        totalTollsSpend += (t.tollCost || 0);
+
+        const tripAllInc = tripEnergyCost + (t.driverCost || 0) + (t.tollCost || 0);
+        totalAllIncSpend += tripAllInc;
+        const tripAllIncRate = tripDist > 0 ? (tripAllInc / tripDist) : 0;
+        const effPack = getEffectivePack();
+        const trip100Range = t.whkm > 0 ? Math.round((effPack * 1000.0) / t.whkm) : 0;
+
+        if (t.startOdo < minOdo) minOdo = t.startOdo;
+        if (t.endOdo > maxOdo) maxOdo = t.endOdo;
+
+        const socStr = t.startSoc && t.endSoc && t.startSoc !== 'Various' 
+          ? `<strong style="color:var(--text);">${t.startSoc}</strong> &rarr; <strong style="color:var(--success);">${t.endSoc}</strong> <span style="font-size:0.7rem; color:var(--text-muted);">(${t.socDelta})</span>` 
+          : `<span style="color:var(--text-muted);">&mdash;</span>`;
+
+        const kmPerPctStr = t.kmPerPct ? `${t.kmPerPct.toFixed(2)} km/%` : `${(tripDist / Math.max(0.1, (energyKwh / effPack * 100))).toFixed(2)} km/%`;
+        const econStr = t.economy ? `${t.economy.toFixed(2)} km/kWh` : `${(tripDist / Math.max(0.1, energyKwh)).toFixed(2)} km/kWh`;
+
+        return `
+          <tr>
+            <td><strong style="color:var(--primary);">#${t.id || (idx + 1)}</strong></td>
+            <td><strong>${t.date}</strong></td>
+            <td style="font-weight:700; color:var(--text);">${t.name}</td>
+            <td style="color:var(--text-muted); font-size:0.75rem;">${t.startOdo.toLocaleString()} &rarr; ${t.endOdo.toLocaleString()} km</td>
+            <td><strong style="color:var(--primary); font-size:0.95rem;">${tripDist.toLocaleString()} km</strong></td>
+            <td style="font-size:0.8rem;">${socStr}</td>
+            <td style="color:var(--success); font-weight:700;">${energyKwh.toFixed(2)} kWh</td>
+            <td><strong style="color:var(--text);">${t.whkm.toFixed(1)}</strong> Wh/km</td>
+            <td style="color:var(--primary); font-size:0.75rem;">${kmPerPctStr}</td>
+            <td style="color:var(--text-muted); font-size:0.75rem;">${econStr}</td>
+            <td style="color:var(--solar); font-size:0.75rem;">₹${(t.tollCost || 0).toLocaleString('en-IN')}</td>
+            <td style="font-size:0.72rem; color:var(--text-muted); max-width:180px;">${t.conditions || 'Standard transit'}</td>
+            <td><button class="btn-danger" style="padding:0.2rem 0.5rem;" onclick="deleteLifetimeTrip(${idx})">Delete</button></td>
+          </tr>
+        `;
+      }).join('');
+
+      if (tbody) {
+        tbody.innerHTML = rowsHtml || '<tr><td colspan="12" style="text-align:center; color:var(--text-muted);">No trips logged yet.</td></tr>';
+      }
+
+      // Calculations for Home vs DC & Charging Speeds
+      let totalHomeHours = 0;
+      let totalDcHours = 0;
+
+      trips.forEach(t => {
+        totalHomeHours += (t.homeHours !== undefined ? t.homeHours : (t.homeGridUnits / 3.3));
+        totalDcHours += (t.dcHours !== undefined ? t.dcHours : (t.dcDispenserUnits / 35.0)); // fallback avg 35 kW
+      });
+
+      const avgHomeAcSpeed = totalHomeHours > 0 ? (totalHomeGridUnits / totalHomeHours) : 3.3;
+      const avgPublicDcSpeed = totalDcHours > 0 ? (totalDcDispenserUnits / totalDcHours) : 35.0;
+      const totalPlugTime = totalHomeHours + totalDcHours;
+
+      const totalUnitsConsumed = totalHomeGridUnits + totalDcDispenserUnits;
+      const homeCostPerKwh = totalHomePackKwh > 0 ? (totalHomeCost / totalHomePackKwh) : 0;
+      const homeCostPerUnit = totalHomeGridUnits > 0 ? (totalHomeCost / totalHomeGridUnits) : 0;
+      const homeCostPerKm = totalHomeKm > 0 ? (totalHomeCost / totalHomeKm) : 0;
+
+      const dcCostPerKwh = totalDcPackKwh > 0 ? (totalDcCost / totalDcPackKwh) : 0;
+      const dcCostPerKm = totalDcKm > 0 ? (totalDcCost / totalDcKm) : 0;
+
+      const blendedEnergyCostPerKwh = totalEnergyKwh > 0 ? (totalEnergySpend / totalEnergyKwh) : 0;
+      const blendedEnergyCostPerUnit = totalUnitsConsumed > 0 ? (totalEnergySpend / totalUnitsConsumed) : 0;
+      const blendedEnergyCostPerKm = totalKm > 0 ? (totalEnergySpend / totalKm) : 0;
+
+      const effectivePack = getEffectivePack();
+      const blendedRate = totalKm > 0 ? (totalAllIncSpend / totalKm) : 0;
+      const blendedWhkm = totalKm > 0 ? Math.round((totalEnergyKwh * 1000.0) / totalKm) : 0;
+      const lifetime100Range = blendedWhkm > 0 ? Math.round((effectivePack * 1000.0) / blendedWhkm) : 0;
+      const kmPer1Pct = blendedWhkm > 0 ? ((effectivePack * 10.0) / blendedWhkm).toFixed(2) : "0.00";
+      const pctPer10Km = parseFloat(kmPer1Pct) > 0 ? (10.0 / parseFloat(kmPer1Pct)).toFixed(1) : "0.0";
+      const petrolCost = (totalKm / 14) * 103;
+      const netSavings = (petrolCost + totalDriverSpend + totalTollsSpend) - totalAllIncSpend;
+
+      // Update Top Hero Banner
+      const lifeRangeElem = document.getElementById('ledger-lifetime-100-range');
+      if (lifeRangeElem) lifeRangeElem.innerText = `${lifetime100Range} km`;
+      const life1pctElem = document.getElementById('ledger-lifetime-1pct-sub');
+      if (life1pctElem) life1pctElem.innerText = `${kmPer1Pct} km/1% (${pctPer10Km}%/10km)`;
+
+      document.getElementById('ledger-total-km').innerText = `${totalKm.toLocaleString()} km`;
+      document.getElementById('ledger-trips-count-badge').innerText = `${trips.length} Completed Trips`;
+      document.getElementById('ledger-odo-span').innerText = `Odometer Range: ${minOdo === Infinity ? 0 : minOdo.toLocaleString()} → ${maxOdo === -Infinity ? 0 : maxOdo.toLocaleString()} km`;
+      document.getElementById('ledger-blended-rate').innerText = `₹${blendedRate.toFixed(2)} / km`;
+      document.getElementById('ledger-blended-whkm').innerText = `${blendedWhkm} Wh/km`;
+      document.getElementById('ledger-total-energy').innerText = `${Math.round(totalEnergyKwh).toLocaleString()} kWh pack (${Math.round(totalUnitsConsumed).toLocaleString()} units)`;
+      document.getElementById('ledger-total-savings').innerText = `₹${Math.round(netSavings).toLocaleString('en-IN')}`;
+      
+      document.getElementById('ledger-total-cost').innerText = `₹${Math.round(totalAllIncSpend).toLocaleString('en-IN')}`;
+      document.getElementById('ledger-energy-cost').innerText = `₹${Math.round(totalEnergySpend).toLocaleString('en-IN')}`;
+      document.getElementById('ledger-energy-rate-sub').innerText = `₹${blendedEnergyCostPerKm.toFixed(2)} / km pure electricity`;
+      document.getElementById('ledger-driver-cost').innerText = `₹${Math.round(totalDriverSpend).toLocaleString('en-IN')}`;
+      document.getElementById('ledger-tolls-cost').innerText = `₹${Math.round(totalTollsSpend).toLocaleString('en-IN')}`;
+
+      // Lifetime Charging Speeds Card Updates
+      document.getElementById('life-avg-ac-speed').innerText = `${avgHomeAcSpeed.toFixed(1)} kW AC`;
+      document.getElementById('life-total-ac-hours').innerText = `${totalHomeHours.toFixed(1)} total AC hours`;
+      document.getElementById('life-avg-dc-speed').innerText = `${avgPublicDcSpeed.toFixed(1)} kW DC`;
+      document.getElementById('life-total-dc-hours').innerText = `${totalDcHours.toFixed(1)} total DC hours`;
+      document.getElementById('life-total-plug-time').innerText = `${totalPlugTime.toFixed(1)} hrs total`;
+      document.getElementById('lifetime-speeds-badge').innerText = `AC: ${avgHomeAcSpeed.toFixed(1)} kW | DC: ${avgPublicDcSpeed.toFixed(1)} kW`;
+
+      // Update Home AC vs Public DC Split Display
+      const homePct = totalKm > 0 ? ((totalHomeKm / totalKm) * 100).toFixed(0) : "0";
+      const dcPct = totalKm > 0 ? ((totalDcKm / totalKm) * 100).toFixed(0) : "0";
+      const splitBadge = document.getElementById('split-ratio-badge');
+      if (splitBadge) splitBadge.innerText = `Home: ${homePct}% | DC: ${dcPct}%`;
+
+      // Stat boxes
+      const statHomeUnits = document.getElementById('stat-home-units');
+      if (statHomeUnits) statHomeUnits.innerText = `${Math.round(totalHomeGridUnits).toLocaleString()} u`;
+      const statHomePack = document.getElementById('stat-home-pack-kwh');
+      if (statHomePack) statHomePack.innerText = `${totalHomePackKwh.toFixed(1)} kWh to battery`;
+      const statHomeCost = document.getElementById('stat-home-cost');
+      if (statHomeCost) statHomeCost.innerText = `₹${Math.round(totalHomeCost).toLocaleString('en-IN')}`;
+      const statHomeRateSub = document.getElementById('stat-home-rate-sub');
+      if (statHomeRateSub) statHomeRateSub.innerText = `₹${homeCostPerKwh.toFixed(2)}/kWh | ₹${homeCostPerKm.toFixed(2)}/km`;
+
+      const statDcUnits = document.getElementById('stat-dc-units');
+      if (statDcUnits) statDcUnits.innerText = `${Math.round(totalDcDispenserUnits).toLocaleString()} kWh`;
+      const statDcCost = document.getElementById('stat-dc-cost');
+      if (statDcCost) statDcCost.innerText = `₹${Math.round(totalDcCost).toLocaleString('en-IN')}`;
+      const statDcRateSub = document.getElementById('stat-dc-rate-sub');
+      if (statDcRateSub) statDcRateSub.innerText = `₹${dcCostPerKwh.toFixed(2)}/kWh | ₹${dcCostPerKm.toFixed(2)}/km`;
+
+      const statTotalUnits = document.getElementById('stat-total-units');
+      if (statTotalUnits) statTotalUnits.innerText = `${Math.round(totalUnitsConsumed).toLocaleString()} u`;
+      const statBlendedSub = document.getElementById('stat-blended-rate-sub');
+      if (statBlendedSub) statBlendedSub.innerText = `Avg ₹${blendedEnergyCostPerKwh.toFixed(2)}/kWh | ₹${blendedEnergyCostPerKm.toFixed(2)}/km`;
+
+      // Split Table Rows
+      const tblHomeUnits = document.getElementById('tbl-home-grid-units');
+      if (tblHomeUnits) tblHomeUnits.innerText = `${totalHomeGridUnits.toFixed(1)} u`;
+      const tblHomePack = document.getElementById('tbl-home-pack-kwh');
+      if (tblHomePack) tblHomePack.innerText = `${totalHomePackKwh.toFixed(1)} kWh`;
+      const tblHomeCost = document.getElementById('tbl-home-total-cost');
+      if (tblHomeCost) tblHomeCost.innerText = `₹${Math.round(totalHomeCost).toLocaleString('en-IN')}`;
+      const tblHomeKwh = document.getElementById('tbl-home-cost-kwh');
+      if (tblHomeKwh) tblHomeKwh.innerText = `₹${homeCostPerKwh.toFixed(2)} / kWh`;
+      const tblHomeKmRate = document.getElementById('tbl-home-cost-km');
+      if (tblHomeKmRate) tblHomeKmRate.innerText = `₹${homeCostPerKm.toFixed(2)} / km`;
+      const tblHomeKm = document.getElementById('tbl-home-km');
+      if (tblHomeKm) tblHomeKm.innerText = `${totalHomeKm.toLocaleString()} km`;
+      const tblHomePct = document.getElementById('tbl-home-pct');
+      if (tblHomePct) tblHomePct.innerText = `${homePct}%`;
+
+      const tblDcUnits = document.getElementById('tbl-dc-dispenser-units');
+      if (tblDcUnits) tblDcUnits.innerText = `${totalDcDispenserUnits.toFixed(1)} kWh`;
+      const tblDcPack = document.getElementById('tbl-dc-pack-kwh');
+      if (tblDcPack) tblDcPack.innerText = `${totalDcPackKwh.toFixed(1)} kWh`;
+      const tblDcCost = document.getElementById('tbl-dc-total-cost');
+      if (tblDcCost) tblDcCost.innerText = `₹${Math.round(totalDcCost).toLocaleString('en-IN')}`;
+      const tblDcKwh = document.getElementById('tbl-dc-cost-kwh');
+      if (tblDcKwh) tblDcKwh.innerText = `₹${dcCostPerKwh.toFixed(2)} / kWh`;
+      const tblDcKmRate = document.getElementById('tbl-dc-cost-km');
+      if (tblDcKmRate) tblDcKmRate.innerText = `₹${dcCostPerKm.toFixed(2)} / km`;
+      const tblDcKm = document.getElementById('tbl-dc-km');
+      if (tblDcKm) tblDcKm.innerText = `${totalDcKm.toLocaleString()} km`;
+      const tblDcPct = document.getElementById('tbl-dc-pct');
+      if (tblDcPct) tblDcPct.innerText = `${dcPct}%`;
+
+      const tblTotUnits = document.getElementById('tbl-total-grid-units');
+      if (tblTotUnits) tblTotUnits.innerText = `${totalUnitsConsumed.toFixed(1)} u`;
+      const tblTotPack = document.getElementById('tbl-total-pack-kwh');
+      if (tblTotPack) tblTotPack.innerText = `${totalEnergyKwh.toFixed(1)} kWh`;
+      const tblTotCost = document.getElementById('tbl-total-cost');
+      if (tblTotCost) tblTotCost.innerText = `₹${Math.round(totalEnergySpend).toLocaleString('en-IN')}`;
+      const tblBlendedKwh = document.getElementById('tbl-blended-cost-kwh');
+      if (tblBlendedKwh) tblBlendedKwh.innerText = `₹${blendedEnergyCostPerKwh.toFixed(2)} / kWh`;
+      const tblBlendedKm = document.getElementById('tbl-blended-cost-km');
+      if (tblBlendedKm) tblBlendedKm.innerText = `₹${blendedEnergyCostPerKm.toFixed(2)} / km`;
+      const tblTotKm = document.getElementById('tbl-total-km');
+      if (tblTotKm) tblTotKm.innerText = `${totalKm.toLocaleString()} km`;
+
+      if (maxOdo > 0 && maxOdo !== -Infinity) {
+        const tcoOdoInput = document.getElementById('tco-odo');
+        if (tcoOdoInput) tcoOdoInput.value = maxOdo;
+        const lifeOdoInput = document.getElementById('life-odo-input');
+        if (lifeOdoInput) lifeOdoInput.value = maxOdo;
+        const lifeWhkmInput = document.getElementById('life-whkm-input');
+        if (lifeWhkmInput && blendedWhkm > 0) lifeWhkmInput.value = blendedWhkm;
+      }
+    }
+
+    function exportLifetimeTripsCSV() {
+      const trips = getLifetimeTrips();
+      if (!trips.length) return alert('No trips to export.');
+      trips.sort((a, b) => a.startOdo - b.startOdo);
+
+      let csv = "Trip #,Date,Trip Route / Name,Start Odo (km),End Odo (km),Trip Distance (km),Cumulative Lifetime km,Wh/km,Real 100% Range (km),Home Km,Home Grid Units (u),Home Cost (INR),DC Km,DC Dispenser Units (kWh),DC Cost (INR),Driver Wages (INR),Fastag Tolls (INR),Total All-Inclusive Cost (INR),All-Inclusive Rate (INR/km)\n";
+      
+      let runningKm = 0;
+      trips.forEach((t, i) => {
+        runningKm += t.dist;
+        const hKm = t.homeKm !== undefined ? t.homeKm : Math.round(t.dist * 0.55);
+        const hCost = t.homeCost !== undefined ? t.homeCost : Math.round((t.energyCost || 0) * 0.35);
+        const hPackKwh = t.homePackKwh !== undefined ? t.homePackKwh : parseFloat(((hKm * t.whkm) / 1000).toFixed(2));
+        const hGridUnits = t.homeGridUnits !== undefined ? t.homeGridUnits : parseFloat((hPackKwh / 0.88).toFixed(2));
+
+        const dKm = t.dcKm !== undefined ? t.dcKm : (t.dist - hKm);
+        const dCost = t.dcCost !== undefined ? t.dcCost : ((t.energyCost || 0) - hCost);
+        const dDispUnits = t.dcDispenserUnits !== undefined ? t.dcDispenserUnits : parseFloat(((dKm * t.whkm) / 1000).toFixed(2));
+
+        const tripEnergyCost = hCost + dCost;
+        const allInc = tripEnergyCost + (t.driverCost || 0) + (t.tollCost || 0);
+        const rate = t.dist > 0 ? (allInc / t.dist).toFixed(2) : "0.00";
+        const r100 = t.whkm > 0 ? Math.round((getEffectivePack() * 1000.0) / t.whkm) : 0;
+        csv += `"${i+1}","${t.date}","${t.name.replace(/"/g, '""')}","${t.startOdo}","${t.endOdo}","${t.dist}","${runningKm}","${t.whkm}","${r100}","${hKm}","${hGridUnits}","${hCost}","${dKm}","${dDispUnits}","${dCost}","${t.driverCost || 0}","${t.tollCost || 0}","${allInc}","${rate}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ev_lifetime_trips_ledger_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+        function saveToHistory() {
       const trip = {
         date: new Date().toLocaleDateString('en-IN'),
         stops: legsData.length - 1,
@@ -2846,6 +5684,17 @@
     auditTpms();
     audit12vBattery();
     auditGridLoad();
+    runLifetimeAudit();
+    renderLifetimeTripsLedger();
+    runContingencyRadar();
+    if (typeof auditServiceCountdown === 'function') auditServiceCountdown();
+    if (typeof auditBmsEqualization === 'function') auditBmsEqualization();
+    if (typeof auditThermalSoak === 'function') auditThermalSoak();
+    if (typeof auditTireMatrix === 'function') auditTireMatrix();
+    if (typeof audit12vParasitic === 'function') audit12vParasitic();
+    if (typeof auditV2L === 'function') auditV2L();
+    if (typeof auditCorridorTolls === 'function') auditCorridorTolls();
+    if (typeof auditBackupStats === 'function') auditBackupStats();
   </script>
 </body>
 </html>
