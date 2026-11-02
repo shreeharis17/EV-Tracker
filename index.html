@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EV Master Command Suite v34 (Universal Auto-Save, Zero-Toll & Ultimate Fleet Edition)</title>
+  <title>EV Master Command Suite v35 (Smooth Leg Input & Universal Fleet Edition)</title>
   <!-- iOS PWA Standalone App Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -2900,8 +2900,17 @@
 
     function setPresetWhkm(legIdx, whkm) {
       legsData[legIdx].whkm = whkm;
-      renderLegsUI();
+      const whkmEl = document.getElementById(`leg-whkm-input-${legIdx}`);
+      if (whkmEl) whkmEl.value = whkm;
+      const card = whkmEl ? whkmEl.closest('.leg-card') : null;
+      if (card) {
+        card.querySelectorAll('.preset-chip').forEach(c => {
+          if (c.innerText.includes(whkm.toString())) c.classList.add('active');
+          else c.classList.remove('active');
+        });
+      }
       calculateTrip();
+      if (typeof triggerUniversalAutoSave === 'function') triggerUniversalAutoSave();
     }
 
     function updateCashbackMode(idx, val) {
@@ -2918,20 +2927,56 @@
     }
 
     function updateOdoField(idx, type, val) {
-      const num = parseFloat(val) || 0;
+      if (val === '' || isNaN(val)) return;
+      const num = parseFloat(val);
+
       if (type === 'start') {
         legsData[idx].startOdo = num;
-        legsData[idx].dist = Math.max(0, legsData[idx].endOdo - num);
+        legsData[idx].endOdo = num + legsData[idx].dist;
+        const endEl = document.getElementById(`leg-end-odo-${idx}`);
+        if (endEl && document.activeElement !== endEl) endEl.value = legsData[idx].endOdo;
       } else if (type === 'end') {
         legsData[idx].endOdo = num;
-        legsData[idx].dist = Math.max(0, num - legsData[idx].startOdo);
+        if (num >= legsData[idx].startOdo) {
+          legsData[idx].dist = Math.round(num - legsData[idx].startOdo);
+          const distEl = document.getElementById(`leg-dist-${idx}`);
+          if (distEl && document.activeElement !== distEl) distEl.value = legsData[idx].dist;
+        }
       } else if (type === 'dist') {
-        legsData[idx].dist = num;
-        legsData[idx].endOdo = legsData[idx].startOdo + num;
+        legsData[idx].dist = Math.max(0, num);
+        legsData[idx].endOdo = legsData[idx].startOdo + legsData[idx].dist;
+        const endEl = document.getElementById(`leg-end-odo-${idx}`);
+        if (endEl && document.activeElement !== endEl) endEl.value = legsData[idx].endOdo;
       }
-      chainOdometers();
-      renderLegsUI();
+
+      // Propagate downstream legs chain smoothly without recreating DOM
+      for (let i = idx + 1; i < legsData.length; i++) {
+        legsData[i].startOdo = legsData[i - 1].endOdo;
+        legsData[i].endOdo = legsData[i].startOdo + legsData[i].dist;
+        const sEl = document.getElementById(`leg-start-odo-${i}`);
+        const eEl = document.getElementById(`leg-end-odo-${i}`);
+        const lblEl = document.getElementById(`leg-depart-lbl-${i}`);
+        if (sEl && document.activeElement !== sEl) sEl.value = legsData[i].startOdo;
+        if (eEl && document.activeElement !== eEl) eEl.value = legsData[i].endOdo;
+        if (lblEl) lblEl.innerText = `Depart: ${Math.round(legsData[i - 1].plugOutSoc || 100)}% SoC | Odo: ${legsData[i].startOdo} km`;
+      }
+
       calculateTrip();
+      if (typeof triggerUniversalAutoSave === 'function') {
+        triggerUniversalAutoSave();
+      }
+    }
+
+    function finalizeOdoField(idx) {
+      if (legsData[idx].endOdo < legsData[idx].startOdo) {
+        legsData[idx].endOdo = legsData[idx].startOdo + legsData[idx].dist;
+        const endEl = document.getElementById(`leg-end-odo-${idx}`);
+        if (endEl) endEl.value = legsData[idx].endOdo;
+      }
+      calculateTrip();
+      if (typeof triggerUniversalAutoSave === 'function') {
+        triggerUniversalAutoSave();
+      }
     }
 
     function renderLegsUI() {
@@ -2954,23 +2999,23 @@
             <div class="grid-inputs">
               <div class="form-group">
                 <label>Start Odometer (km)</label>
-                <input type="number" value="${leg.startOdo}" oninput="updateOdoField(${idx}, 'start', this.value)" />
+                <input type="number" id="leg-start-odo-${idx}" value="${leg.startOdo}" oninput="updateOdoField(${idx}, 'start', this.value)" />
               </div>
               <div class="form-group">
                 <label>Arrival Odometer (km)</label>
-                <input type="number" value="${leg.endOdo}" oninput="updateOdoField(${idx}, 'end', this.value)" />
+                <input type="number" id="leg-end-odo-${idx}" value="${leg.endOdo}" oninput="updateOdoField(${idx}, 'end', this.value)" onblur="finalizeOdoField(${idx})" />
               </div>
               <div class="form-group">
                 <label>Leg Distance (km)</label>
-                <input type="number" value="${leg.dist}" oninput="updateOdoField(${idx}, 'dist', this.value)" />
+                <input type="number" id="leg-dist-${idx}" value="${leg.dist}" oninput="updateOdoField(${idx}, 'dist', this.value)" />
               </div>
               <div class="form-group">
                 <label>Fastag Highway Tolls (₹)</label>
-                <input type="number" value="${leg.tollFee || 0}" step="10" placeholder="e.g. 185" oninput="updateVal(${idx}, 'tollFee', this.value)" />
+                <input type="number" id="leg-toll-${idx}" value="${leg.tollFee || 0}" step="10" placeholder="e.g. 0" oninput="updateVal(${idx}, 'tollFee', this.value)" />
               </div>
               <div class="form-group">
                 <label>Actual Arrival SoC (%)</label>
-                <input type="number" placeholder="e.g. 40" value="${leg.actualSoc !== null ? leg.actualSoc : ''}" oninput="updateActualSoc(${idx}, this.value)" />
+                <input type="number" id="leg-actual-soc-${idx}" placeholder="e.g. 40" value="${leg.actualSoc !== null ? leg.actualSoc : ''}" oninput="updateActualSoc(${idx}, this.value)" />
                 <div id="leg-variance-box-${idx}"></div>
               </div>
             </div>
@@ -4912,8 +4957,8 @@
     // =========================================================================
     // UNIVERSAL AUTO-SAVE & STATE HYDRATION ENGINE (v34)
     // =========================================================================
-    const AUTOSAVE_STORAGE_KEY = 'ev_field_autosave_v34';
-    const LEGS_STORAGE_KEY = 'ev_active_legs_v34';
+    const AUTOSAVE_STORAGE_KEY = 'ev_field_autosave_v35';
+    const LEGS_STORAGE_KEY = 'ev_active_legs_v35';
     let autosaveDebounceTimer = null;
 
     function triggerUniversalAutoSave() {
@@ -5325,7 +5370,7 @@
 ];
 
     function getLifetimeTrips() {
-      const stored = localStorage.getItem('ev_master_lifetime_trips_v34');
+      const stored = localStorage.getItem('ev_master_lifetime_trips_v35');
       if (stored) {
         try { return JSON.parse(stored); } catch(e) {}
       }
@@ -5333,12 +5378,12 @@
     }
 
     function saveLifetimeTrips(trips) {
-      localStorage.setItem('ev_master_lifetime_trips_v34', JSON.stringify(trips));
+      localStorage.setItem('ev_master_lifetime_trips_v35', JSON.stringify(trips));
     }
 
     function resetTripsToDefaults() {
       if (!confirm("Reset lifetime trips ledger to verified 3,492 km executive telemetry?")) return;
-      localStorage.removeItem('ev_master_lifetime_trips_v34');
+      localStorage.removeItem('ev_master_lifetime_trips_v35');
       renderLifetimeTripsLedger();
       alert("Ledger restored to verified 3,492 km executive telemetry baseline.");
     }
