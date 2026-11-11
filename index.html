@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EV Master Command Suite v36 (Total Real-World Range & Universal Fleet Edition)</title>
+  <title>EV Master Command Suite v37 (Auto-Migrate, Instant Recovery & Fleet Edition)</title>
   <!-- iOS PWA Standalone App Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -4951,7 +4951,7 @@
     function generateBackupPayload() {
       return {
         app: "MG Windsor EV Master Command Suite",
-        version: "v32",
+        version: "v37",
         exportTimestamp: new Date().toISOString(),
         vehicle: "MG Windsor EV Excite (38 kWh LFP)",
         currentOdo: parseFloat(document.getElementById('cfg-start-odo')?.value || 5320),
@@ -4978,7 +4978,7 @@
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `mg_windsor_ev_v32_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `mg_windsor_ev_v37_backup_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
     }
 
@@ -5056,8 +5056,8 @@
     // =========================================================================
     // UNIVERSAL AUTO-SAVE & STATE HYDRATION ENGINE (v34)
     // =========================================================================
-    const AUTOSAVE_STORAGE_KEY = 'ev_field_autosave_v36';
-    const LEGS_STORAGE_KEY = 'ev_active_legs_v36';
+    const AUTOSAVE_STORAGE_KEY = 'ev_field_autosave_v37';
+    const LEGS_STORAGE_KEY = 'ev_active_legs_v37';
     let autosaveDebounceTimer = null;
 
     function triggerUniversalAutoSave() {
@@ -5097,19 +5097,33 @@
     }
 
     function hydrateAutoSavedState() {
-      const savedLegs = localStorage.getItem(LEGS_STORAGE_KEY);
+      // 1. Recover active route legs from current or older version keys
+      let savedLegs = localStorage.getItem(LEGS_STORAGE_KEY);
+      if (!savedLegs) {
+        const legKeys = ['ev_active_legs_v36', 'ev_active_legs_v35', 'ev_active_legs_v34', 'ev_active_legs_v33', 'ev_active_legs'];
+        for (const k of legKeys) {
+          const prev = localStorage.getItem(k);
+          if (prev) { savedLegs = prev; break; }
+        }
+      }
       if (savedLegs) {
         try {
           const parsedLegs = JSON.parse(savedLegs);
           if (Array.isArray(parsedLegs) && parsedLegs.length > 0) {
             legsData = parsedLegs;
           }
-        } catch (e) {
-          console.warn("Could not parse saved legs:", e);
-        }
+        } catch (e) {}
       }
 
-      const savedState = localStorage.getItem(AUTOSAVE_STORAGE_KEY);
+      // 2. Recover autosaved inputs from current or older version keys
+      let savedState = localStorage.getItem(AUTOSAVE_STORAGE_KEY);
+      if (!savedState) {
+        const stateKeys = ['ev_field_autosave_v36', 'ev_field_autosave_v35', 'ev_field_autosave_v34', 'ev_field_autosave_v33', 'ev_field_autosave'];
+        for (const k of stateKeys) {
+          const prev = localStorage.getItem(k);
+          if (prev) { savedState = prev; break; }
+        }
+      }
       if (savedState) {
         try {
           const state = JSON.parse(savedState);
@@ -5123,9 +5137,7 @@
               }
             }
           });
-        } catch (e) {
-          console.warn("Could not parse saved form state:", e);
-        }
+        } catch (e) {}
       }
     }
 
@@ -5468,21 +5480,99 @@
       }
 ];
 
+    const LIFETIME_TRIPS_STORAGE_KEY = 'ev_master_lifetime_trips_v37';
+
     function getLifetimeTrips() {
-      const stored = localStorage.getItem('ev_master_lifetime_trips_v36');
+      // 1. Check active storage key first
+      const stored = localStorage.getItem(LIFETIME_TRIPS_STORAGE_KEY);
+      let activeTrips = null;
       if (stored) {
-        try { return JSON.parse(stored); } catch(e) {}
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) activeTrips = parsed;
+        } catch(e) {}
       }
+
+      // 2. Scan for ALL previous version keys present in browser memory
+      const candidateKeys = [
+        'ev_master_lifetime_trips_v36',
+        'ev_master_lifetime_trips_v35',
+        'ev_master_lifetime_trips_v34',
+        'ev_master_lifetime_trips_v33',
+        'ev_master_lifetime_trips_v32',
+        'ev_master_lifetime_trips_v31',
+        'ev_master_lifetime_trips_v30',
+        'ev_master_lifetime_trips_v29',
+        'ev_master_lifetime_trips_v28',
+        'ev_master_lifetime_trips_v27',
+        'ev_master_lifetime_trips'
+      ];
+
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('ev_master_lifetime_trips') && k !== LIFETIME_TRIPS_STORAGE_KEY && !candidateKeys.includes(k)) {
+            candidateKeys.push(k);
+          }
+        }
+      } catch(e) {}
+
+      // Find the most comprehensive set of user trips from any previous version
+      let bestOlderTrips = null;
+      let maxCount = 0;
+      let maxOdo = 0;
+
+      for (const k of candidateKeys) {
+        const item = localStorage.getItem(k);
+        if (item) {
+          try {
+            const parsed = JSON.parse(item);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const curMaxOdo = Math.max(...parsed.map(t => parseFloat(t.endOdo) || 0));
+              if (parsed.length > maxCount || (parsed.length === maxCount && curMaxOdo > maxOdo)) {
+                maxCount = parsed.length;
+                maxOdo = curMaxOdo;
+                bestOlderTrips = parsed;
+              }
+            }
+          } catch(e) {}
+        }
+      }
+
+      // 3. Merge: If an older key has custom trips that active storage lacks, recover them immediately
+      if (bestOlderTrips && bestOlderTrips.length > 0) {
+        const baseList = activeTrips || defaultLifetimeTrips;
+        const existingSignatures = new Set(baseList.map(t => `${t.startOdo}-${t.endOdo}-${t.date}`));
+        let mergedList = [...baseList];
+        let recoveredCount = 0;
+
+        bestOlderTrips.forEach(oldTrip => {
+          const sig = `${oldTrip.startOdo}-${oldTrip.endOdo}-${oldTrip.date}`;
+          if (!existingSignatures.has(sig)) {
+            mergedList.push(oldTrip);
+            existingSignatures.add(sig);
+            recoveredCount++;
+          }
+        });
+
+        if (recoveredCount > 0 || !activeTrips) {
+          mergedList.sort((a, b) => (parseFloat(a.startOdo) || 0) - (parseFloat(b.startOdo) || 0));
+          localStorage.setItem(LIFETIME_TRIPS_STORAGE_KEY, JSON.stringify(mergedList));
+          return mergedList;
+        }
+      }
+
+      if (activeTrips) return activeTrips;
       return defaultLifetimeTrips;
     }
 
     function saveLifetimeTrips(trips) {
-      localStorage.setItem('ev_master_lifetime_trips_v36', JSON.stringify(trips));
+      localStorage.setItem(LIFETIME_TRIPS_STORAGE_KEY, JSON.stringify(trips));
     }
 
     function resetTripsToDefaults() {
       if (!confirm("Reset lifetime trips ledger to verified 3,492 km executive telemetry?")) return;
-      localStorage.removeItem('ev_master_lifetime_trips_v36');
+      localStorage.removeItem(LIFETIME_TRIPS_STORAGE_KEY);
       renderLifetimeTripsLedger();
       alert("Ledger restored to verified 3,492 km executive telemetry baseline.");
     }
