@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EV Master Command Suite v35 (Smooth Leg Input & Universal Fleet Edition)</title>
+  <title>EV Master Command Suite v36 (Total Real-World Range & Universal Fleet Edition)</title>
   <!-- iOS PWA Standalone App Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -849,6 +849,39 @@
       <div class="card" style="border-color: var(--primary);">
         <div class="card-title" style="color:var(--primary); font-weight:700;">
           🏁 Grand Highway Reconciliation (Entire Route with Energy, Driver & Tolls)
+        </div>
+
+        <!-- REAL-WORLD TRIP RANGE & CHARGING RECONCILIATION BANNER -->
+        <div class="hero-range-banner" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.16) 0%, rgba(56, 189, 248, 0.16) 100%); border-color: rgba(34, 197, 94, 0.45); margin-top:0; margin-bottom:0.75rem;">
+          <div>
+            <div class="hero-label">Calculated Real 100% Range</div>
+            <div id="tot-100-range" class="hero-val" style="color:var(--success); font-size:1.65rem;">-- km</div>
+            <div class="stat-sub" id="tot-100-range-sub">At overall trip pacing</div>
+          </div>
+          <div>
+            <div class="hero-label">Total Trip Range Capability</div>
+            <div id="tot-combined-range" class="hero-val" style="color:var(--primary); font-size:1.65rem;">-- km</div>
+            <div class="stat-sub" id="tot-combined-range-sub">Driven km + arrival buffer</div>
+          </div>
+          <div>
+            <div class="hero-label">Safe Highway Hop (70%)</div>
+            <div id="tot-safe-stint-range" class="hero-val" style="color:#f8fafc; font-size:1.65rem;">-- km</div>
+            <div class="stat-sub">85% → 15% highway window</div>
+          </div>
+          <div>
+            <div class="hero-label">Arrival Reserve at Destination</div>
+            <div id="tot-arrival-reserve-km" class="hero-val" style="color:var(--solar); font-size:1.65rem;">-- km</div>
+            <div class="stat-sub" id="tot-arrival-reserve-sub">--% battery remaining</div>
+          </div>
+        </div>
+
+        <!-- PROGRESSIVE RANGE UNLOCKED ACROSS CHARGING STOPS -->
+        <div style="background:#060a12; border:1px solid #1a2538; padding:0.65rem 0.85rem; border-radius:0.4rem; margin-bottom:0.75rem; font-size:0.78rem;">
+          <div style="font-weight:700; color:var(--primary); text-transform:uppercase; margin-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>🔋 Progressive Driving Range Unlocked Across Charging Stops</span>
+            <span class="plug-metric-chip" id="tot-range-efficiency-chip">-- km / 1% SoC</span>
+          </div>
+          <div id="range-progression-breakdown" style="display:flex; flex-direction:column; gap:0.35rem;"></div>
         </div>
 
         <div class="hero-range-banner" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(34, 197, 94, 0.15) 100%); border-color: var(--primary); margin-top:0; margin-bottom:0.75rem;">
@@ -3308,26 +3341,43 @@
       let totalCashback = 0;
       let breakdownHtml = "";
 
+      let initialDepartRange = 0;
+      let totalRangeAddedByCharging = 0;
+      let rangeStagesHtml = "";
+
       legsData.forEach((leg, idx) => {
         const departLbl = document.getElementById(`leg-depart-lbl-${idx}`);
         if (departLbl) departLbl.innerText = `Depart: ${Math.round(currentSoC)}% SoC | Odo: ${leg.startOdo} km`;
 
-        if (leg.actualSoc !== null && leg.dist > 0) {
+        // Safeguard: only recalculate Wh/km if actual arrival SoC is strictly below current departure SoC
+        if (leg.actualSoc !== null && leg.dist > 0 && currentSoC > leg.actualSoc) {
           const deltaSocActual = currentSoC - leg.actualSoc;
           const kwhActual = (deltaSocActual / 100.0) * effectivePack;
-          leg.whkm = Math.round((kwhActual * 1000.0) / leg.dist);
+          leg.whkm = Math.max(90, Math.round((kwhActual * 1000.0) / leg.dist));
           const whkmInput = document.getElementById(`leg-whkm-input-${idx}`);
           if (whkmInput && document.activeElement !== whkmInput) whkmInput.value = leg.whkm;
         }
 
-        const energy = (leg.dist * leg.whkm) / 1000;
+        const safeLegWhkm = Math.max(90, Math.abs(leg.whkm || 125));
+        const energy = (leg.dist * safeLegWhkm) / 1000;
         const socDrop = (energy / effectivePack) * 100;
         const arrivalSoC = Math.round(currentSoC - socDrop);
 
-        const full100Range = leg.whkm > 0 ? Math.round((effectivePack * 1000) / leg.whkm) : 0;
-        const kmPer1Pct = leg.whkm > 0 ? (effectivePack * 10) / leg.whkm : 0;
+        if (idx === 0) {
+          const startSocVal = parseFloat(document.getElementById('cfg-depart-soc')?.value || 100);
+          initialDepartRange = Math.round((startSocVal / 100.0) * ((effectivePack * 1000) / safeLegWhkm));
+          rangeStagesHtml += `
+            <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #1e293b; padding-bottom:0.25rem;">
+              <span><strong>🚩 Departure:</strong> Initial Battery (${startSocVal}% SoC @ ${safeLegWhkm} Wh/km)</span>
+              <strong style="color:var(--text);">${initialDepartRange} km initial range</strong>
+            </div>
+          `;
+        }
+
+        const full100Range = Math.round((effectivePack * 1000) / safeLegWhkm);
+        const kmPer1Pct = (effectivePack * 10) / safeLegWhkm;
         const pctPer10Km = kmPer1Pct > 0 ? (10 / kmPer1Pct) : 0;
-        const safeRange = Math.round(((currentSoC - 15) / 100 * effectivePack * 1000) / leg.whkm);
+        const safeRange = Math.round(((Math.max(15, currentSoC) - 15) / 100 * effectivePack * 1000) / safeLegWhkm);
 
         cumulativeDist += leg.dist;
         totalDischarged += energy;
@@ -3346,7 +3396,6 @@
         } else {
           const prevStop = legsData[idx - 1];
           legSource = `DC Charger #${idx}`;
-          
           const prevPlugIn = prevStop.plugInSoc !== null ? prevStop.plugInSoc : (prevStop.actualSoc !== null ? prevStop.actualSoc : arrivalSoC);
           const prevUnitsAdded = Math.max(0.1, ((prevStop.plugOutSoc - prevPlugIn) / 100) * effectivePack);
           const prevBaseEnergy = prevUnitsAdded * prevStop.dcRate;
@@ -3365,7 +3414,6 @@
         const legCostPerKm = leg.dist > 0 ? (legCost / leg.dist) : 0;
         const cumCostPerKm = cumulativeDist > 0 ? (cumulativeNetCost / cumulativeDist) : 0;
 
-        // DOM mappings
         const arrivalElem = document.getElementById(`leg-arrival-${idx}`);
         const full100Elem = document.getElementById(`leg-100-range-${idx}`);
         const safeRangeElem = document.getElementById(`leg-safe-range-${idx}`);
@@ -3479,10 +3527,22 @@
           if (durElem) durElem.innerText = `${actualAvgPower.toFixed(1)} kW avg`;
           if (curveElem) curveElem.innerText = `in ${elapsedMins} mins on ${leg.chargerKw || 60} kW gun`;
 
-          const nextLegPacing = legsData[idx + 1] ? legsData[idx + 1].whkm : leg.whkm;
+          // SAFE NEXT-LEG PACING: always strictly positive (prevents negative range display)
+          const rawNextPacing = legsData[idx + 1] ? legsData[idx + 1].whkm : leg.whkm;
+          const nextLegPacing = Math.max(90, Math.abs(rawNextPacing || 125));
+
           const post100Range = Math.round((effectivePack * 1000) / nextLegPacing);
           const postActualMax = Math.round((activePlugOut / 100 * effectivePack * 1000) / nextLegPacing);
-          const postActualSafe = Math.round(((activePlugOut - 15) / 100 * effectivePack * 1000) / nextLegPacing);
+          const postActualSafe = Math.round(((Math.max(15, activePlugOut) - 15) / 100 * effectivePack * 1000) / nextLegPacing);
+          const rangeAddedThisStop = Math.round((unitsAdded * 1000) / nextLegPacing);
+          totalRangeAddedByCharging += rangeAddedThisStop;
+
+          rangeStagesHtml += `
+            <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #1e293b; padding-bottom:0.25rem;">
+              <span><strong>⚡ Stop #${idx + 1} (${leg.cpoName || 'DC Fast Charger'}):</strong> Charged ${activePlugIn}% → ${activePlugOut}% (+${unitsAdded.toFixed(1)} kWh)</span>
+              <span><strong style="color:var(--success);">+${rangeAddedThisStop} km added</strong> (Unlocks <strong>${postActualMax} km</strong> post-charge)</span>
+            </div>
+          `;
 
           if (full100BoxElem) full100BoxElem.innerText = `${post100Range} km`;
           if (actualMaxElem) actualMaxElem.innerText = `${postActualMax} km`;
@@ -3491,7 +3551,7 @@
 
           // Plan-B Station Redundancy Check
           const planBDist = leg.planBDist || 30;
-          const kmPer1PctArrival = (effectivePack * 10) / leg.whkm;
+          const kmPer1PctArrival = (effectivePack * 10) / safeLegWhkm;
           const arrivalRangeKm = activePlugIn * kmPer1PctArrival;
           if (planBStatusElem) {
             if (arrivalRangeKm >= (planBDist + 15)) {
@@ -3583,12 +3643,54 @@
       document.getElementById('drv-per-km-share').innerText = `₹${driverPerKm.toFixed(2)} / km`;
       document.getElementById('driver-cost-badge').innerText = `+₹${driverPerKm.toFixed(2)} / km driver`;
 
-      const overallWhkm = cumulativeDist > 0 ? (totalDischarged * 1000) / cumulativeDist : 0;
-      const overallKmkwh = totalDischarged > 0 ? cumulativeDist / totalDischarged : 0;
-      const overall100Range = overallWhkm > 0 ? Math.round((effectivePack * 1000) / overallWhkm) : 0;
-      const overallKmPer1Pct = overallWhkm > 0 ? (effectivePack * 10) / overallWhkm : 0;
-      const overallPctPer10Km = overallKmPer1Pct > 0 ? (10 / overallKmPer1Pct) : 0;
+      // --- GRAND TRIP RANGE CALCULATIONS ACROSS ALL CHARGING STOPS ---
+      const overallWhkm = cumulativeDist > 0 ? (totalDischarged * 1000) / cumulativeDist : 125;
+      const safeOverallWhkm = Math.max(90, Math.abs(overallWhkm));
+      
+      const overall100Range = Math.round((effectivePack * 1000) / safeOverallWhkm);
+      const overallKmPer1Pct = (effectivePack * 10) / safeOverallWhkm;
+      const overallSafeStintRange = Math.round((effectivePack * 0.70 * 1000) / safeOverallWhkm);
+      const arrivalReserveKm = Math.round((Math.max(0, currentSoC) / 100.0) * ((effectivePack * 1000) / safeOverallWhkm));
+      const totalTripRangeCapability = cumulativeDist + arrivalReserveKm;
 
+      // Populate Grand Hero Range Banner
+      const tot100Elem = document.getElementById('tot-100-range');
+      if (tot100Elem) tot100Elem.innerText = `${overall100Range} km`;
+      const tot100Sub = document.getElementById('tot-100-range-sub');
+      if (tot100Sub) tot100Sub.innerText = `@ ${Math.round(safeOverallWhkm)} Wh/km overall trip average`;
+
+      const combRangeElem = document.getElementById('tot-combined-range');
+      if (combRangeElem) combRangeElem.innerText = `${totalTripRangeCapability} km`;
+      const combRangeSub = document.getElementById('tot-combined-range-sub');
+      if (combRangeSub) combRangeSub.innerText = `${cumulativeDist} km driven + ${arrivalReserveKm} km arrival buffer`;
+
+      const safeStintElem = document.getElementById('tot-safe-stint-range');
+      if (safeStintElem) safeStintElem.innerText = `${overallSafeStintRange} km`;
+
+      const reserveElem = document.getElementById('tot-arrival-reserve-km');
+      if (reserveElem) reserveElem.innerText = `${arrivalReserveKm} km`;
+      const reserveSub = document.getElementById('tot-arrival-reserve-sub');
+      if (reserveSub) reserveSub.innerText = `${Math.round(currentSoC)}% battery remaining at arrival`;
+
+      const effChip = document.getElementById('tot-range-efficiency-chip');
+      if (effChip) effChip.innerText = `${overallKmPer1Pct.toFixed(2)} km / 1% SoC`;
+
+      const stageBox = document.getElementById('range-progression-breakdown');
+      if (stageBox) {
+        rangeStagesHtml += `
+          <div style="display:flex; justify-content:space-between; padding-top:0.35rem; border-top:1px solid #1a2538; font-weight:700; color:var(--text);">
+            <span>🏁 Destination Arrival: Reached with ${Math.round(currentSoC)}% Battery Reserve</span>
+            <span style="color:var(--solar);">${arrivalReserveKm} km buffer remaining</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding-top:0.25rem; font-weight:800; color:var(--success);">
+            <span>🏆 Total Real-Life Range Capability (Driven + Arrival Buffer):</span>
+            <span style="font-size:0.9rem;">${cumulativeDist} km + ${arrivalReserveKm} km = ${totalTripRangeCapability} km</span>
+          </div>
+        `;
+        stageBox.innerHTML = rangeStagesHtml;
+      }
+
+      // Populate standard cost and toll outputs
       const grandNetEnergyCostPerKm = cumulativeDist > 0 ? cumulativeNetCost / cumulativeDist : 0;
       const grandTotalAllInclusiveSpend = cumulativeNetCost + driverInfo.total + cumulativeTolls;
       const grandAllInclusiveCostPerKm = cumulativeDist > 0 ? (grandTotalAllInclusiveSpend / cumulativeDist) : 0;
@@ -3600,7 +3702,7 @@
 
       document.getElementById('tot-dist').innerText = cumulativeDist + " km";
       document.getElementById('tot-whkm').innerText = Math.round(overallWhkm) + " Wh/km";
-      document.getElementById('tot-kmkwh').innerText = overallKmkwh.toFixed(2) + " km/kWh";
+      document.getElementById('tot-kmkwh').innerText = (totalDischarged > 0 ? cumulativeDist / totalDischarged : 0).toFixed(2) + " km/kWh";
       document.getElementById('tot-tolls-banner').innerText = `₹${cumulativeTolls.toFixed(0)}`;
       document.getElementById('tot-cashback-sub').innerText = `Tolls: ₹${cumulativeTolls} | CB: ₹${totalCashback.toFixed(0)}`;
       document.getElementById('tot-kwh').innerText = totalDischarged.toFixed(2) + " kWh";
@@ -3613,9 +3715,6 @@
       document.getElementById('net-savings').innerText = "₹" + Math.round(netSavings) + ` (${Math.round((netSavings/petrolTotalAllInclusive)*100)}% saved vs Petrol+Driver+Toll)`;
     }
 
-    // ==========================================
-    // HOTEL & DESTINATION CHARGING ENGINE
-    // ==========================================
     function runHotelAudit() {
       const pack = getEffectivePack();
       const infra = document.getElementById('hotel-infra-type').value;
@@ -4957,8 +5056,8 @@
     // =========================================================================
     // UNIVERSAL AUTO-SAVE & STATE HYDRATION ENGINE (v34)
     // =========================================================================
-    const AUTOSAVE_STORAGE_KEY = 'ev_field_autosave_v35';
-    const LEGS_STORAGE_KEY = 'ev_active_legs_v35';
+    const AUTOSAVE_STORAGE_KEY = 'ev_field_autosave_v36';
+    const LEGS_STORAGE_KEY = 'ev_active_legs_v36';
     let autosaveDebounceTimer = null;
 
     function triggerUniversalAutoSave() {
@@ -5370,7 +5469,7 @@
 ];
 
     function getLifetimeTrips() {
-      const stored = localStorage.getItem('ev_master_lifetime_trips_v35');
+      const stored = localStorage.getItem('ev_master_lifetime_trips_v36');
       if (stored) {
         try { return JSON.parse(stored); } catch(e) {}
       }
@@ -5378,12 +5477,12 @@
     }
 
     function saveLifetimeTrips(trips) {
-      localStorage.setItem('ev_master_lifetime_trips_v35', JSON.stringify(trips));
+      localStorage.setItem('ev_master_lifetime_trips_v36', JSON.stringify(trips));
     }
 
     function resetTripsToDefaults() {
       if (!confirm("Reset lifetime trips ledger to verified 3,492 km executive telemetry?")) return;
-      localStorage.removeItem('ev_master_lifetime_trips_v35');
+      localStorage.removeItem('ev_master_lifetime_trips_v36');
       renderLifetimeTripsLedger();
       alert("Ledger restored to verified 3,492 km executive telemetry baseline.");
     }
